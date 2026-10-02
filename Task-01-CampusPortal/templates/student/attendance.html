@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Attendance Records</h1>
+    <p class="page-subtitle">Track lecture attendance requirements and status</p>
+  </div>
+  <div>
+    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+    <table class="portal-table">
+      <thead>
+        <tr>
+          <th>Course Code</th>
+          <th>Course Title</th>
+          <th>Total Lectures</th>
+          <th>Attended</th>
+          <th>Attendance Rate</th>
+          <th>Status</th>
+          <th>Last Recorded</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for att in attendance_data %}
+          <tr>
+            <td><strong>{{ att.course_code }}</strong></td>
+            <td>{{ att.title }}</td>
+            <td>{{ att.total_classes }}</td>
+            <td>{{ att.attended_classes }}</td>
+            <td>
+              <strong>{{ "%.1f"|format(att.percentage) }}%</strong>
+            </td>
+            <td>
+              {% if att.percentage >= 85.0 %}
+                <span class="badge badge-success">Excellent (&ge;85%)</span>
+              {% elif att.percentage >= 75.0 %}
+                <span class="badge badge-warning">Satisfactory (75-84%)</span>
+              {% else %}
+                <span class="badge badge-danger">Critical (&lt;75%)</span>
+              {% endif %}
+            </td>
+            <td style="color: #64748b; font-size: 0.85rem;">{{ att.updated_at[:10] }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; color: #64748b;">No attendance records found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="background-color: #f8fafc;">
+  <h4 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 8px;">Institutional Policy Note</h4>
+  <p style="font-size: 0.85rem; color: #64748b;">
+    A minimum attendance threshold of 75% is strictly required to sit for final semester examinations. Students falling below 75% will be flagged for academic review.
+  </p>
+</div>
+{% endblock %}

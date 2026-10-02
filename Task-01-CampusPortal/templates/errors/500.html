@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}500 Internal Error - CampusPortal{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 40px 30px; border-left: 6px solid var(--danger);">
+    <div style="font-size: 3.5rem; margin-bottom: 12px;">⚙️ 500</div>
+    <h1 style="font-size: 1.8rem; font-weight: 700; color: #111827; margin-bottom: 12px;">
+      Internal Server Error
+    </h1>
+    <p style="color: #4b5563; font-size: 1rem; margin-bottom: 16px;">
+      An unexpected internal error occurred while processing your request.
+    </p>
+
+    <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 24px; font-size: 0.85rem; color: #4b5563;">
+      🛡️ <strong>Defensive Control:</strong> Detailed server stack traces and debugging internals are strictly withheld to prevent information disclosure.
+    </div>
+
+    <div>
+      <a href="{{ url_for('index') }}" class="btn btn-primary">Return to Portal Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

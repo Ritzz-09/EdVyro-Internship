@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Student Profile</h1>
+    <p class="page-subtitle">View your student credentials and update contact details</p>
+  </div>
+</div>
+
+<div style="max-width: 800px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-title">Profile Information</div>
+
+    <div class="security-notice-box" style="margin-bottom: 20px;">
+      <strong>🛡️ Defensive RBAC &amp; Field Separation:</strong>
+      System identifiers (Username, Student ID Code, and Account Role) are immutable and read-only.
+      Only non-sensitive contact and academic preference fields may be modified. All updates are logged in the audit trail.
+    </div>
+
+    <form action="{{ url_for('student_profile') }}" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Read-Only Sensitive Fields -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; background-color: #f8fafc; padding: 16px; border-radius: 6px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-input" value="{{ session.get('username') }}" disabled>
+          <div class="form-help">Immutable authentication identity</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Student ID Code</label>
+          <input type="text" class="form-input" value="{{ student.student_id_code }}" disabled>
+          <div class="form-help">Assigned institutional identifier</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" value="{{ student.full_name }}" disabled>
+          <div class="form-help">Registrar-verified legal name</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Account Role</label>
+          <input type="text" class="form-input" value="{{ session.get('role')|capitalize }}" disabled>
+          <div class="form-help">Role-Based Access Control tier</div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1.05rem; font-weight: 600; color: #1e293b; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+        Editable Contact &amp; Academic Information
+      </h3>
+
+      <div class="grid-container" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address <span style="color: var(--danger);">*</span></label>
+          <input type="email" id="email" name="email" class="form-input" value="{{ student.email }}" required>
+          <div class="form-help">Institutional or synthetic contact email</div>
+        </div>
+
+        <div class="form-group">
+          <label for="phone" class="form-label">Phone Number <span style="color: var(--danger);">*</span></label>
+          <input type="text" id="phone" name="phone" class="form-input" value="{{ student.phone }}" required>
+          <div class="form-help">Synthetic format e.g. 555-0101</div>
+        </div>
+      </div>
+
+      <div class="grid-container" style="margin-bottom: 24px;">
+        <div class="form-group">
+          <label for="department" class="form-label">Department <span style="color: var(--danger);">*</span></label>
+          <select id="department" name="department" class="form-select" required>
+            {% for dept in departments %}
+              <option value="{{ dept }}" {% if student.department == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="semester" class="form-label">Semester <span style="color: var(--danger);">*</span></label>
+          <select id="semester" name="semester" class="form-select" required>
+            {% for s in range(1, 9) %}
+              <option value="{{ s }}" {% if student.semester == s %}selected{% endif %}>Semester {{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

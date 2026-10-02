@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CampusPortal{% endblock %} - Local Defensive Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- Mandatory Local Defensive Lab Notice Banner -->
+  <div class="lab-banner" role="alert">
+    <span class="pulse-dot"></span>
+    <span>⚠️ LOCAL DEFENSIVE LAB — Authorized Localhost Only (127.0.0.1) — Synthetic Data Only</span>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="logo-badge">CP</span>
+      <span>CampusPortal</span>
+    </a>
+
+    <ul class="nav-links">
+      {% if session.get('user_id') %}
+        {% set role = session.get('role') %}
+        
+        {% if role == 'student' %}
+          <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.path == url_for('student_dashboard') %}active{% endif %}">Dashboard</a></li>
+          <li><a href="{{ url_for('student_profile') }}" class="{% if request.path == url_for('student_profile') %}active{% endif %}">My Profile</a></li>
+          <li><a href="{{ url_for('student_grades') }}" class="{% if request.path == url_for('student_grades') %}active{% endif %}">Grades</a></li>
+          <li><a href="{{ url_for('student_attendance') }}" class="{% if request.path == url_for('student_attendance') %}active{% endif %}">Attendance</a></li>
+        {% elif role == 'faculty' %}
+          <li><a href="{{ url_for('faculty_dashboard') }}" class="{% if request.path == url_for('faculty_dashboard') %}active{% endif %}">Faculty Dashboard</a></li>
+          <li><a href="{{ url_for('faculty_grades') }}" class="{% if request.path == url_for('faculty_grades') %}active{% endif %}">Manage Grades</a></li>
+        {% elif role == 'admin' %}
+          <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.path == url_for('admin_dashboard') %}active{% endif %}">Admin Overview</a></li>
+          <li><a href="{{ url_for('admin_users') }}" class="{% if request.path == url_for('admin_users') %}active{% endif %}">User Management</a></li>
+          <li><a href="{{ url_for('admin_audit') }}" class="{% if request.path == url_for('admin_audit') %}active{% endif %}">Audit Trail</a></li>
+        {% endif %}
+
+        <li class="user-profile-badge">
+          <span class="role-pill role-{{ role }}">{{ role }}</span>
+          <span style="font-weight: 500; font-size: 0.9rem;">{{ session.get('username') }}</span>
+          <form action="{{ url_for('logout') }}" method="POST" style="display: inline; margin-left: 8px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-secondary btn-sm" style="background-color: #334155; color: #f8fafc; border: 1px solid #475569;">Logout</button>
+          </form>
+        </li>
+      {% else %}
+        <li><a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Sign In</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="main-content">
+    <!-- Flash Messages Block -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="alert-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <span>{{ message }}</span>
+              <button type="button" class="alert-close" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: inherit;" aria-label="Close">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="portal-footer">
+    <p>CampusPortal &copy; 2026 — Fictional Student Portal for Cybersecurity Threat Modeling &amp; Defensive Hardening</p>
+    <p style="margin-top: 4px; font-size: 0.8rem; color: #64748b;">
+      Host: 127.0.0.1:5000 &bull; Role-Based Access Control &bull; Parameterized Queries &bull; Audit Logging Enabled
+    </p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

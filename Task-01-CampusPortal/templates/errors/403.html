@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}403 Forbidden - Access Denied{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 40px 30px; border-left: 6px solid var(--danger);">
+    <div style="font-size: 3.5rem; margin-bottom: 12px;">🛡️ 403</div>
+    <h1 style="font-size: 1.8rem; font-weight: 700; color: #111827; margin-bottom: 12px;">
+      Access Denied / Forbidden
+    </h1>
+    <p style="color: #4b5563; font-size: 1rem; margin-bottom: 20px;">
+      You do not have the required role privileges to access this resource.
+    </p>
+
+    <div style="background-color: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 14px; text-align: left; margin-bottom: 24px; font-size: 0.85rem; color: #991b1b;">
+      <strong>⚠️ Security Notice &amp; Audit Trail:</strong>
+      <p style="margin-top: 4px;">
+        This unauthorized access attempt has been logged in the SQLite defensive audit trail (<code>audit_logs</code>) with event type <code>ACCESS_DENIED</code>, recording your active username, role, client IP address, and destination endpoint.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">Return to My Dashboard</a>
+      <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Welcome back, {{ student.full_name }}</h1>
+    <p class="page-subtitle">Student ID: <strong>{{ student.student_id_code }}</strong> &bull; {{ student.department }} &bull; Semester {{ student.semester }}</p>
+  </div>
+  <div>
+    <a href="{{ url_for('student_profile') }}" class="btn btn-secondary btn-sm">Edit Profile</a>
+  </div>
+</div>
+
+<!-- Academic Summary Metrics -->
+<div class="grid-container">
+  <div class="card">
+    <div class="card-title">Enrolled Courses</div>
+    <div class="metric-value">{{ enrollments|length }}</div>
+    <div class="metric-label">Active academic courses this term</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Average Marks</div>
+    <div class="metric-value">
+      {% if avg_grade is not none %}
+        {{ "%.1f"|format(avg_grade) }}%
+      {% else %}
+        N/A
+      {% endif %}
+    </div>
+    <div class="metric-label">Cumulative average score</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Overall Attendance</div>
+    <div class="metric-value">
+      {% if overall_attendance is not none %}
+        {{ "%.1f"|format(overall_attendance) }}%
+      {% else %}
+        N/A
+      {% endif %}
+    </div>
+    <div class="metric-label">Classes attended to date</div>
+  </div>
+</div>
+
+<!-- Course Overview and Announcements -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+  <!-- Course Enrollments Table -->
+  <div class="card">
+    <div class="card-title">
+      <span>My Courses &amp; Current Standing</span>
+      <a href="{{ url_for('student_grades') }}" style="font-size: 0.85rem; font-weight: normal; color: #2563eb; text-decoration: none;">View Detailed Grades &rarr;</a>
+    </div>
+
+    <div class="table-responsive" style="box-shadow: none; border: none; margin-bottom: 0;">
+      <table class="portal-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Instructor</th>
+            <th>Credits</th>
+            <th>Total Marks</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in courses_summary %}
+            <tr>
+              <td>
+                <strong>{{ item.course_code }}</strong><br>
+                <small style="color: #64748b;">{{ item.title }}</small>
+              </td>
+              <td>{{ item.faculty_name }}</td>
+              <td>{{ item.credits }}</td>
+              <td><strong>{{ item.total_score }}</strong> / 100</td>
+              <td>
+                <span class="badge {% if item.letter_grade in ['A+', 'A'] %}badge-success{% elif item.letter_grade in ['B', 'C'] %}badge-warning{% else %}badge-danger{% endif %}">
+                  {{ item.letter_grade }}
+                </span>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" style="text-align: center; color: #64748b;">No enrolled courses found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Announcements -->
+  <div class="card">
+    <div class="card-title">Announcements</div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for ann in announcements %}
+        <div style="border-left: 3px solid #3b82f6; padding-left: 12px;">
+          <h4 style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">{{ ann.title }}</h4>
+          <p style="font-size: 0.85rem; color: #475569; margin: 4px 0;">{{ ann.content }}</p>
+          <div style="font-size: 0.75rem; color: #94a3b8;">
+            Posted by {{ ann.author_role }} &bull; {{ ann.created_at[:10] }}
+          </div>
+        </div>
+      {% else %}
+        <p style="color: #64748b; font-size: 0.9rem;">No active announcements.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

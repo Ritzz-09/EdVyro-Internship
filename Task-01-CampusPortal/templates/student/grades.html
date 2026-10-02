@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}My Grades &amp; Marks - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Academic Marks &amp; Transcripts</h1>
+    <p class="page-subtitle">Detailed breakdown of midterm, final, and total scores by course</p>
+  </div>
+  <div>
+    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+    <table class="portal-table">
+      <thead>
+        <tr>
+          <th>Course Code</th>
+          <th>Course Title</th>
+          <th>Instructor</th>
+          <th>Credits</th>
+          <th>Midterm (/50)</th>
+          <th>Final (/50)</th>
+          <th>Total (/100)</th>
+          <th>Letter Grade</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grade in grades_data %}
+          <tr>
+            <td><strong>{{ grade.course_code }}</strong></td>
+            <td>{{ grade.title }}</td>
+            <td>{{ grade.faculty_name }}</td>
+            <td>{{ grade.credits }}</td>
+            <td>{{ grade.midterm_score }}</td>
+            <td>{{ grade.final_score }}</td>
+            <td><strong>{{ grade.total_score }}</strong></td>
+            <td>
+              <span class="badge {% if grade.letter_grade in ['A+', 'A'] %}badge-success{% elif grade.letter_grade in ['B', 'C'] %}badge-warning{% else %}badge-danger{% endif %}">
+                {{ grade.letter_grade }}
+              </span>
+            </td>
+            <td>
+              {% if grade.total_score >= 50 %}
+                <span class="badge badge-success">Passed</span>
+              {% else %}
+                <span class="badge badge-danger">Incomplete</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; color: #64748b;">No grade records available.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="background-color: #f8fafc;">
+  <h4 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 8px;">Grading Scale Reference</h4>
+  <p style="font-size: 0.85rem; color: #64748b;">
+    <strong>A+</strong>: 90–100% &bull; 
+    <strong>A</strong>: 80–89% &bull; 
+    <strong>B</strong>: 70–79% &bull; 
+    <strong>C</strong>: 60–69% &bull; 
+    <strong>D</strong>: 50–59% &bull; 
+    <strong>F</strong>: Below 50%
+  </p>
+</div>
+{% endblock %}

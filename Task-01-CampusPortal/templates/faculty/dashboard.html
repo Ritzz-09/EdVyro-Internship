@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Faculty Portal: {{ faculty.full_name }}</h1>
+    <p class="page-subtitle">Faculty ID: <strong>{{ faculty.faculty_id_code }}</strong> &bull; Department of {{ faculty.department }}</p>
+  </div>
+  <div>
+    <a href="{{ url_for('faculty_grades') }}" class="btn btn-primary btn-sm">Enter / Update Grades</a>
+  </div>
+</div>
+
+<!-- Metrics -->
+<div class="grid-container">
+  <div class="card">
+    <div class="card-title">Assigned Courses</div>
+    <div class="metric-value">{{ courses|length }}</div>
+    <div class="metric-label">Active teaching assignments</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Total Students Taught</div>
+    <div class="metric-value">{{ total_students }}</div>
+    <div class="metric-label">Enrolled across all assigned sections</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Role Privileges</div>
+    <div class="metric-value" style="font-size: 1.3rem; color: #059669; padding-top: 10px;">FACULTY (Level 2)</div>
+    <div class="metric-label">Grades editing &amp; student roster access</div>
+  </div>
+</div>
+
+<!-- Courses List -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-title">My Assigned Course Sections</div>
+
+  <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+    <table class="portal-table">
+      <thead>
+        <tr>
+          <th>Course Code</th>
+          <th>Course Title</th>
+          <th>Department</th>
+          <th>Credits</th>
+          <th>Enrolled Students</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+          <tr>
+            <td><strong>{{ course.course_code }}</strong></td>
+            <td>{{ course.title }}</td>
+            <td>{{ course.department }}</td>
+            <td>{{ course.credits }} Credits</td>
+            <td>
+              <span class="badge badge-neutral" style="font-size: 0.9rem;">
+                {{ course.enrolled_count }} Students
+              </span>
+            </td>
+            <td>
+              <a href="{{ url_for('faculty_grades', course_id=course.id) }}" class="btn btn-secondary btn-sm" style="background-color: #059669; color: #ffffff;">
+                Manage Marks &amp; Roster &rarr;
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: #64748b;">No assigned courses.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="security-notice-box">
+  <strong>🛡️ Defensive Integrity Control:</strong>
+  All grade submissions and adjustments are cryptographically authenticated via user session, protected by CSRF tokens, and permanently written to the defensive audit log (<code>GRADE_UPDATE</code>) recording the before-and-after values, faculty username, and timestamp.
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>CampusPortal</h1>
+      <p>Local Defensive Lab Authentication</p>
+    </div>
+
+    <form action="{{ url_for('login') }}" method="POST" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" name="username" class="form-input" placeholder="e.g. alice_student" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" name="password" class="form-input" placeholder="Enter password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 8px;">Sign In to Portal</button>
+    </form>
+
+    <div class="demo-credentials-card">
+      <h4>🔑 Synthetic Demo Accounts (Click to Fill)</h4>
+      <p style="color: #64748b; margin-bottom: 10px; font-size: 0.8rem;">
+        Click any role button below to populate the login form for testing role-based workflows:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <button type="button" class="demo-user-btn" data-username="alice_student" data-password="StudentPass123!">
+          <strong>Student:</strong> alice_student / StudentPass123!
+        </button>
+
+        <button type="button" class="demo-user-btn" data-username="bob_student" data-password="StudentPass123!">
+          <strong>Student:</strong> bob_student / StudentPass123!
+        </button>
+
+        <button type="button" class="demo-user-btn" data-username="prof_smith" data-password="FacultyPass123!">
+          <strong>Faculty:</strong> prof_smith / FacultyPass123!
+        </button>
+
+        <button type="button" class="demo-user-btn" data-username="admin_user" data-password="AdminPass123!">
+          <strong>Admin:</strong> admin_user / AdminPass123!
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+      <p>🛡️ <strong>Defensive Controls Active:</strong></p>
+      <ul style="padding-left: 18px; margin-top: 4px;">
+        <li>Passwords hashed via Werkzeug secure algorithms</li>
+        <li>Login rate limit: 5 failed attempts per 60 seconds</li>
+        <li>All authentication attempts recorded in audit log</li>
+        <li>Strict session cookie isolation (HttpOnly, SameSite)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

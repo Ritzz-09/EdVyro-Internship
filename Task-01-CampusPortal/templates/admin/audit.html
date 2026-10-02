@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Trail - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Defensive Audit &amp; Event Trail</h1>
+    <p class="page-subtitle">Inspect tamper-evident security logs for threat modeling and forensic analysis</p>
+  </div>
+  <div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="card" style="margin-bottom: 24px;">
+  <form method="GET" action="{{ url_for('admin_audit') }}" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+    <div style="flex: 1; min-width: 200px;">
+      <label for="event_type" class="form-label">Filter by Event Type:</label>
+      <select id="event_type" name="event_type" class="form-select" onchange="this.form.submit()">
+        <option value="" {% if not selected_type %}selected{% endif %}>-- All Event Types --</option>
+        {% for et in event_types %}
+          <option value="{{ et }}" {% if selected_type == et %}selected{% endif %}>{{ et }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 200px;">
+      <label for="status" class="form-label">Filter by Status:</label>
+      <select id="status" name="status" class="form-select" onchange="this.form.submit()">
+        <option value="" {% if not selected_status %}selected{% endif %}>-- All Statuses --</option>
+        <option value="SUCCESS" {% if selected_status == 'SUCCESS' %}selected{% endif %}>SUCCESS</option>
+        <option value="FAILURE" {% if selected_status == 'FAILURE' %}selected{% endif %}>FAILURE</option>
+      </select>
+    </div>
+
+    <div>
+      <a href="{{ url_for('admin_audit') }}" class="btn btn-secondary btn-sm">Clear Filters</a>
+    </div>
+  </form>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card">
+  <div class="card-title">
+    <span>Audit Records ({{ logs|length }} Total Events Shown)</span>
+    <span class="badge badge-neutral">SQLite audit_logs</span>
+  </div>
+
+  <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+    <table class="portal-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Timestamp (UTC)</th>
+          <th>Event Type</th>
+          <th>User</th>
+          <th>IP Address</th>
+          <th>Status</th>
+          <th>Event Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.id }}</td>
+            <td style="font-family: monospace; font-size: 0.8rem; color: #475569;">{{ log.timestamp[:19] }}</td>
+            <td>
+              <span class="badge {% if log.event_type in ['LOGIN_SUCCESS', 'SYSTEM_INIT'] %}badge-success{% elif log.event_type in ['ACCESS_DENIED', 'AUTH_REJECTED', 'LOGIN_RATE_LIMITED'] %}badge-danger{% elif log.event_type in ['GRADE_UPDATE', 'USER_CREATED'] %}badge-warning{% else %}badge-neutral{% endif %}">
+                {{ log.event_type }}
+              </span>
+            </td>
+            <td><strong>{{ log.username or 'Anonymous' }}</strong></td>
+            <td style="font-family: monospace; font-size: 0.85rem;">{{ log.ip_address }}</td>
+            <td>
+              <span class="badge {% if log.status == 'SUCCESS' %}badge-success{% else %}badge-danger{% endif %}">
+                {{ log.status }}
+              </span>
+            </td>
+            <td style="font-size: 0.85rem; color: #334155;">{{ log.details }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; color: #64748b;">No matching audit logs found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="background-color: #f8fafc; margin-top: 24px;">
+  <h4 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 8px;">Audit Trail Threat-Modeling Insights</h4>
+  <p style="font-size: 0.85rem; color: #64748b;">
+    <strong>Non-Repudiation &amp; Forensics:</strong> The audit trail provides chronological evidence of all identity transitions (logins, logouts), authorization boundaries (access denials), and state modifications (profile updates, grade modifications, account provisioning). Passwords and raw session secrets are excluded by design to prevent credential leakage in logs.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Student Grades - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Grade &amp; Performance Management</h1>
+    <p class="page-subtitle">Submit and update semester scores for enrolled students</p>
+  </div>
+  <div>
+    <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- Course Selector -->
+<div class="card" style="margin-bottom: 24px;">
+  <form method="GET" action="{{ url_for('faculty_grades') }}" style="display: flex; align-items: center; gap: 16px;">
+    <div style="flex: 1;">
+      <label for="course_select" class="form-label" style="margin-bottom: 4px;">Select Assigned Course Section:</label>
+      <select id="course_select" name="course_id" class="form-select" onchange="this.form.submit()">
+        {% for c in courses %}
+          <option value="{{ c.id }}" {% if selected_course and selected_course.id == c.id %}selected{% endif %}>
+            {{ c.course_code }} - {{ c.title }} ({{ c.enrolled_count }} Enrolled)
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="padding-top: 24px;">
+      <button type="submit" class="btn btn-secondary btn-sm">Load Roster</button>
+    </div>
+  </form>
+</div>
+
+{% if selected_course %}
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-title">
+      <span>Class Roster &amp; Marks: <strong>{{ selected_course.course_code }}</strong> ({{ selected_course.title }})</span>
+      <span class="badge badge-neutral">{{ roster|length }} Students</span>
+    </div>
+
+    <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+      <table class="portal-table">
+        <thead>
+          <tr>
+            <th>Student ID</th>
+            <th>Full Name</th>
+            <th>Attendance</th>
+            <th>Midterm (/50)</th>
+            <th>Final (/50)</th>
+            <th>Total (/100)</th>
+            <th>Grade</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in roster %}
+            <tr>
+              <td><strong>{{ student.student_id_code }}</strong></td>
+              <td>{{ student.full_name }}</td>
+              <td>
+                <span class="badge {% if student.attendance_pct >= 85 %}badge-success{% elif student.attendance_pct >= 75 %}badge-warning{% else %}badge-danger{% endif %}">
+                  {{ "%.1f"|format(student.attendance_pct) }}% ({{ student.attended_classes }}/{{ student.total_classes }})
+                </span>
+              </td>
+              <form action="{{ url_for('faculty_update_grade') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="grade_id" value="{{ student.grade_id }}">
+                <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+
+                <td>
+                  <input type="number" step="0.5" min="0" max="50" name="midterm_score" value="{{ student.midterm_score }}" class="form-input" style="width: 80px; padding: 6px;" required>
+                </td>
+                <td>
+                  <input type="number" step="0.5" min="0" max="50" name="final_score" value="{{ student.final_score }}" class="form-input" style="width: 80px; padding: 6px;" required>
+                </td>
+                <td><strong>{{ student.total_score }}</strong></td>
+                <td>
+                  <span class="badge {% if student.letter_grade in ['A+', 'A'] %}badge-success{% elif student.letter_grade in ['B', 'C'] %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ student.letter_grade }}
+                  </span>
+                </td>
+                <td>
+                  <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                </td>
+              </form>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="8" style="text-align: center; color: #64748b;">No students are currently enrolled in this course.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card" style="background-color: #f8fafc;">
+  <h4 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 8px;">Grade Modification Rules</h4>
+  <ul style="padding-left: 18px; font-size: 0.85rem; color: #64748b;">
+    <li>Midterm and Final scores must be valid numbers between 0.0 and 50.0.</li>
+    <li>Total score is automatically computed as the sum of Midterm and Final scores.</li>
+    <li>Letter grades (A+, A, B, C, D, F) are automatically recalculated upon update.</li>
+    <li>Every update is recorded with the modifying faculty's ID in the audit log for non-repudiation.</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - CampusPortal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">User &amp; Identity Management</h1>
+    <p class="page-subtitle">Provision synthetic accounts and manage active user status</p>
+  </div>
+  <div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- Provisioning Form -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-title">Provision New Synthetic Account</div>
+
+  <form action="{{ url_for('admin_create_user') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="grid-container" style="margin-bottom: 16px;">
+      <div class="form-group">
+        <label for="new_username" class="form-label">Username <span style="color: var(--danger);">*</span></label>
+        <input type="text" id="new_username" name="username" class="form-input" placeholder="e.g. charlie_student" required>
+      </div>
+
+      <div class="form-group">
+        <label for="new_password" class="form-label">Initial Password <span style="color: var(--danger);">*</span></label>
+        <input type="password" id="new_password" name="password" class="form-input" placeholder="Strong synthetic password" required>
+      </div>
+
+      <div class="form-group">
+        <label for="new_role" class="form-label">System Role <span style="color: var(--danger);">*</span></label>
+        <select id="new_role" name="role" class="form-select" required>
+          <option value="student">Student (Level 1)</option>
+          <option value="faculty">Faculty (Level 2)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-container" style="margin-bottom: 16px;">
+      <div class="form-group">
+        <label for="new_full_name" class="form-label">Full Name <span style="color: var(--danger);">*</span></label>
+        <input type="text" id="new_full_name" name="full_name" class="form-input" placeholder="e.g. Charlie Brown" required>
+      </div>
+
+      <div class="form-group">
+        <label for="new_id_code" class="form-label">ID Code <span style="color: var(--danger);">*</span></label>
+        <input type="text" id="new_id_code" name="id_code" class="form-input" placeholder="e.g. STU-2024-003 or FAC-2024-020" required>
+      </div>
+
+      <div class="form-group">
+        <label for="new_email" class="form-label">Email Address <span style="color: var(--danger);">*</span></label>
+        <input type="email" id="new_email" name="email" class="form-input" placeholder="e.g. charlie@campus.local" required>
+      </div>
+    </div>
+
+    <div class="grid-container" style="margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="new_department" class="form-label">Department <span style="color: var(--danger);">*</span></label>
+        <select id="new_department" name="department" class="form-select" required>
+          {% for dept in departments %}
+            <option value="{{ dept }}">{{ dept }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="new_phone" class="form-label">Phone Number</label>
+        <input type="text" id="new_phone" name="phone" class="form-input" placeholder="e.g. 555-0105" value="555-0105">
+      </div>
+
+      <div class="form-group">
+        <label for="new_semester" class="form-label">Semester (Student Only)</label>
+        <select id="new_semester" name="semester" class="form-select">
+          {% for s in range(1, 9) %}
+            <option value="{{ s }}">Semester {{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button type="submit" class="btn btn-primary">Create Synthetic Account</button>
+    </div>
+  </form>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+  <div class="card-title">All System Accounts ({{ users|length }})</div>
+
+  <div class="table-responsive" style="border: none; box-shadow: none; margin-bottom: 0;">
+    <table class="portal-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Name / ID Code</th>
+          <th>Department</th>
+          <th>Account Status</th>
+          <th>Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td><strong>{{ u.username }}</strong></td>
+            <td>
+              <span class="role-pill role-{{ u.role }}">{{ u.role }}</span>
+            </td>
+            <td>
+              {{ u.full_name or 'N/A' }}<br>
+              <small style="color: #64748b;">{{ u.id_code or '-' }}</small>
+            </td>
+            <td>{{ u.department or 'N/A' }}</td>
+            <td>
+              {% if u.is_active == 1 %}
+                <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-danger">Deactivated</span>
+              {% endif %}
+            </td>
+            <td style="color: #64748b; font-size: 0.85rem;">{{ u.created_at[:10] }}</td>
+            <td>
+              {% if u.id == session.get('user_id') %}
+                <span style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">Current Session</span>
+              {% else %}
+                <form action="{{ url_for('admin_toggle_user_status') }}" method="POST" style="display: inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="user_id" value="{{ u.id }}">
+                  {% if u.is_active == 1 %}
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deactivate user account {{ u.username }}?')">Deactivate</button>
+                  {% else %}
+                    <button type="submit" class="btn btn-secondary btn-sm" style="background-color: #059669; color: #ffffff;">Activate</button>
+                  {% endif %}
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

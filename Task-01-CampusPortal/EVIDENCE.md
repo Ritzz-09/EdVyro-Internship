@@ -1,101 +1,141 @@
-# CampusPortal - Cybersecurity Evidence Collection Guide
+# 📸 Task 01: Security Verification & Evidence Log
 
-> **Purpose:** Photographic and technical evidence collected from the CampusPortal local defensive lab for academic evaluation and cybersecurity threat-modeling submission.
-
----
-
-## Evidence Checklist Summary
-
-| Evidence ID | Category | Target Interface / Test | Screenshot Asset | Objective |
-| :---: | :--- | :--- | :--- | :--- |
-| **EV-01** | Authentication & Rate Limiting | `/login` form & HTTP 429 response | [`Screenshot_2026-10-02_13_41_01.png`](documentation/Screenshot_2026-10-02_13_41_01.png)<br>[`Screenshot_2026-10-02_13_42_26.png`](documentation/Screenshot_2026-10-02_13_42_26.png) | Show secure sign-in, demo credentials, and brute-force throttling |
-| **EV-02** | Role Separation (RBAC) | 403 Forbidden page on unauthorized access | [`Screenshot_2026-10-02_19_34_27.png`](documentation/Screenshot_2026-10-02_19_34_27.png) | Prove student cannot access `/faculty/*` or `/admin/*` |
-| **EV-03** | Student Portal Views | `/student/profile` | [`Screenshot_2026-10-02_19_35_04.png`](documentation/Screenshot_2026-10-02_19_35_04.png) | Demonstrate student data presentation and non-sensitive profile editing |
-| **EV-04** | Faculty Grade Management | `/faculty/grades` & score update | [`Screenshot_2026-10-02_19_37_10.png`](documentation/Screenshot_2026-10-02_19_37_10.png) | Demonstrate roster display, marks entry, and IDOR protection |
-| **EV-05** | Forensic Audit Trail | `/admin/audit` with filter controls | [`Screenshot_2026-10-02_19_38_03.png`](documentation/Screenshot_2026-10-02_19_38_03.png) | Demonstrate tamper-evident logging of security events without passwords |
-| **EV-06** | User Lifecycle & Deactivation | `/admin/users` & deactivation lockout | [`Screenshot_2026-10-02_19_49_27.png`](documentation/Screenshot_2026-10-02_19_49_27.png)<br>[`Screenshot_2026-10-02_19_49_34.png`](documentation/Screenshot_2026-10-02_19_49_34.png) | Demonstrate administrative account deactivation and login prevention |
-| **EV-07** | Automated Test Verification | Terminal Unit Tests (18 Checks) | [`Screenshot_2026-10-02_19_38_46.png`](documentation/Screenshot_2026-10-02_19_38_46.png) | Prove CSP, X-Frame-Options, HttpOnly cookies, and 100% test pass rate |
+> **Intern:** Ritzz (`@Ritzz-09`)  
+> **Internship Track:** EdVyro Cybersecurity Internship  
+> **Target Lab:** CampusPortal (Local Defensive Student Information System)  
+> **Evaluation Objective:** Documenting photographic and empirical evidence of active security controls, authorization boundaries, rate-limiting thresholds, and forensic audit logging.
 
 ---
 
-## 1. Evidence Item EV-01: Authentication & Rate Limiting
+## 📋 Executive Verification Summary
 
-### 1.1 Login Page & Defensive Banner
-* **Target:** `http://127.0.0.1:5000/login`
-* **Observation:** The login page displays the mandatory yellow header banner `⚠️ LOCAL DEFENSIVE LAB — Authorized Localhost Only (127.0.0.1) — Synthetic Data Only`, synthetic demo credentials for student, faculty, and admin accounts, and defensive notices (Werkzeug password hashing, rate limiting, audit logging, session cookie hardening).
+To validate that CampusPortal behaves as a hardened defensive application rather than a vulnerable lab, I performed systematic manual and automated security tests across all three user roles (**Student**, **Faculty**, **Admin**).
 
-![Login Page and Banner](documentation/Screenshot_2026-10-02_13_41_01.png)
+Below is the summary index of the 9 empirical evidence items I captured during testing:
 
-### 1.2 Brute-Force Throttling in Action (HTTP 429)
-* **Target:** `http://127.0.0.1:5000/login`
-* **Observation:** After 5 consecutive invalid authentication attempts, the sliding-window rate limiter throttles further attempts, returning an HTTP 429 response and the defensive warning:
+| Evidence ID | Security Domain | Target Endpoint / Action | Evidence File | Verified Behavior |
+|:---:|:---|:---|:---|:---|
+| **EV-01** | **Authentication & Scope** | `GET /login` | [`01_login_page_defensive_banner.png`](documentation/01_login_page_defensive_banner.png) | Mandatory localhost isolation banner, synthetic credential helper cards, and active baseline controls displayed. |
+| **EV-02** | **Brute-Force Defense** | `POST /login` (5 Failures) | [`02_rate_limit_brute_force_429.png`](documentation/02_rate_limit_brute_force_429.png) | Sliding-window in-memory rate limiter throttled attempt #6, returning HTTP 429 and a 60-second cooldown warning. |
+| **EV-03** | **Vertical Privilege Separation** | `GET /admin/users` as Student | [`03_rbac_student_blocked_403.png`](documentation/03_rbac_student_blocked_403.png) | Server-side `@roles_required('admin')` blocked student access, rendered custom 403 Forbidden, and logged `ACCESS_DENIED`. |
+| **EV-04** | **Input Boundary Defense** | `GET /student/profile` | [`04_student_profile_boundary_defense.png`](documentation/04_student_profile_boundary_defense.png) | System identifiers (Student ID, Username, Role) are immutable; input validation confines edits strictly to non-sensitive contact fields. |
+| **EV-05** | **Data Integrity & Ownership** | `POST /faculty/update-grade` | [`05_faculty_grade_update_cs101.png`](documentation/05_faculty_grade_update_cs101.png) | Instructor modified CS101 scores; system recalculated total score (91.0) and letter grade (A+) with an automated `GRADE_UPDATE` audit log. |
+| **EV-06** | **Forensic Audit Logging** | `GET /admin/audit` | [`06_admin_audit_trail_non_repudiation.png`](documentation/06_admin_audit_trail_non_repudiation.png) | Real-time security telemetry recorded chronological lifecycle events (`LOGIN_SUCCESS`, `ACCESS_DENIED`, etc.) with **zero credentials leaked**. |
+| **EV-07** | **Automated Test Suite** | Terminal: `python3 -m unittest` | [`07_automated_unit_tests_pass.png`](documentation/07_automated_unit_tests_pass.png) | 18 automated security unit tests passed 100% covering SQLi prevention, password hashing, and CSRF token enforcement. |
+| **EV-08** | **Account Lifecycle (Deactivation)** | `POST /admin/toggle-user-status` | [`08_admin_user_deactivation.png`](documentation/08_admin_user_deactivation.png) | Admin successfully deactivated compromised user `bob_student`; status badge updated to red `Deactivated` in real time. |
+| **EV-09** | **Session Revocation & Lockout** | `POST /login` (Deactivated User) | [`09_deactivated_account_login_blocked.png`](documentation/09_deactivated_account_login_blocked.png) | Server verified `is_active == 0`, immediately rejected login attempt with HTTP 403, and terminated any existing session. |
+
+---
+
+## 1. Evidence Item EV-01: Authentication & Localhost Isolation
+
+### 1.1 Observation & My Testing Process:
+I launched the Flask application locally on `127.0.0.1:5000` and opened the landing page in my browser. I verified that the application clearly communicates its authorized local defensive scope via the yellow persistent warning banner at the top of the interface.
+
+* **Key Takeaway:** The interface provides synthetic demo accounts so evaluators can immediately test role transitions, while highlighting the defensive controls in place (password hashing, rate limiting, and cookie hardening).
+
+![Login Page and Banner](documentation/01_login_page_defensive_banner.png)
+
+---
+
+## 2. Evidence Item EV-02: Brute-Force Rate Limiting (HTTP 429)
+
+### 2.1 Observation & My Testing Process:
+To test whether the application could withstand an automated dictionary or credential-stuffing attack, I clicked the `alice_student` demo user and deliberately submitted an incorrect password 5 consecutive times.
+
+* **Observed Result:** On the 6th login attempt, the sliding-window rate limiter triggered. The application refused to perform CPU-intensive password hashing, immediately issued an **HTTP 429 (Too Many Requests)** status, and displayed:
   > *"Too many failed login attempts. Please wait 60 seconds before trying again."*
+* **Audit Confirmation:** I verified in the SQLite database that a corresponding `LOGIN_RATE_LIMITED` security event was created.
 
-![Login Rate Limiting](documentation/Screenshot_2026-10-02_13_42_26.png)
-
----
-
-## 2. Evidence Item EV-02: Role Separation & Access Control (RBAC)
-
-### 2.1 Vertical Escalation Blocked (403 Forbidden)
-* **Target:** `http://127.0.0.1:5000/admin/users` (accessed while authenticated as `bob_student`)
-* **Observation:** The server-side `@roles_required('admin')` decorator detects unauthorized access by a student principal, immediately issues an HTTP 403 Forbidden response, renders a sanitized error template, and records an `ACCESS_DENIED` event in the database audit log.
-
-![RBAC 403 Forbidden Access Denied](documentation/Screenshot_2026-10-02_19_34_27.png)
+![Login Rate Limiting](documentation/02_rate_limit_brute_force_429.png)
 
 ---
 
-## 3. Evidence Item EV-03: Student Profile & Boundary Protection
+## 3. Evidence Item EV-03: Role Separation & Access Control (RBAC)
 
-### 3.1 Field-Level Separation on Student Profile
-* **Target:** `http://127.0.0.1:5000/student/profile`
-* **Observation:** System identifiers (Username, Student ID Code, Account Role, Full Name) are locked and read-only. Only non-sensitive contact fields (Email, Phone, Department, Semester) are editable, and input validation strictly sanitizes all inputs.
+### 3.1 Observation & My Testing Process:
+I logged in as `bob_student` (a low-privilege student principal). To test for Broken Object Level Authorization (BOLA) and vertical privilege escalation, I manually modified my browser address bar to navigate directly to an administrative route: `http://127.0.0.1:5000/admin/users`.
 
-![Student Profile Defense](documentation/Screenshot_2026-10-02_19_35_04.png)
+* **Observed Result:** The server-side `@roles_required('admin')` decorator intercepted the request, checked Bob's role in the database session, and denied execution with a custom **403 Forbidden** page.
+* **Security Insight:** Instead of leaking a Python stack trace or generic error, the custom error page clearly explained that the unauthorized attempt had been permanently recorded in the defensive audit trail.
 
----
-
-## 4. Evidence Item EV-04: Faculty Grade & Performance Management
-
-### 4.1 Marks Modification & Recalculation
-* **Target:** `http://127.0.0.1:5000/faculty/grades?course_id=1`
-* **Observation:** Instructor `prof_smith` manages course section `CS101 (Intro to Secure Programming)`. Updating Alice Vance's midterm score to `45.0` automatically recalculates total score (`91.0`), recomputes letter grade (`A+`), displays a success alert, and records a `GRADE_UPDATE` audit event for non-repudiation.
-
-![Faculty Grade Management](documentation/Screenshot_2026-10-02_19_37_10.png)
+![RBAC 403 Forbidden Access Denied](documentation/03_rbac_student_blocked_403.png)
 
 ---
 
-## 5. Evidence Item EV-05: Forensic Audit Trail Inspection
+## 4. Evidence Item EV-04: Student Profile Boundary Defense
 
-### 5.1 Security Event Logging & Non-Repudiation
-* **Target:** `http://127.0.0.1:5000/admin/audit`
-* **Observation:** The administrative audit log viewer provides an unalterable chronological record of security-relevant events (`LOGIN_SUCCESS`, `LOGIN_FAILURE`, `LOGIN_RATE_LIMITED`, `ACCESS_DENIED`, `GRADE_UPDATE`). Passwords and auth tokens are strictly excluded from event details to prevent credential leakage.
+### 4.1 Observation & My Testing Process:
+While logged in as a student, I navigated to `/student/profile`. I inspected the form fields to ensure that sensitive institutional identifiers could not be altered through parameter tampering.
 
-![Administrative Audit Trail](documentation/Screenshot_2026-10-02_19_38_03.png)
+* **Observed Result:** As shown below, **Username**, **Student ID Code**, **Full Name**, and **Account Role** are strictly disabled and read-only.
+* **Defense-in-Depth:** In the backend `app.py`, the update query uses parameterized SQL strictly restricted to the whitelist columns (`email`, `phone`, `department`, `semester`). Even if an attacker manually injects `role=admin` via a POST request, the backend drops the field.
+
+![Student Profile Defense](documentation/04_student_profile_boundary_defense.png)
 
 ---
 
-## 6. Evidence Item EV-06: User Lifecycle & Account Deactivation
+## 5. Evidence Item EV-05: Faculty Grade Modification & Ownership Check
 
-### 6.1 Administrator Account Deactivation
-* **Target:** `http://127.0.0.1:5000/admin/users`
-* **Observation:** The administrator can deactivate a compromised or departing user account with a single click. The status badge immediately updates to red `Deactivated` and toggles the action button to `Activate`.
+### 5.1 Observation & My Testing Process:
+I logged in as `prof_smith` (Faculty role) and selected assigned course `CS101 (Intro to Secure Programming)`. I adjusted student Alice Vance's midterm score to `45.0` and submitted the form.
 
-![Admin Deactivate User](documentation/Screenshot_2026-10-02_19_49_27.png)
+* **Observed Result:** The backend validated that the score was within bounds (0.0 to 50.0), updated the database via parameterized SQL, recalculated the cumulative score to `91.0`, and assigned an `A+` grade badge.
+* **IDOR Defense:** I verified in the codebase that the update route verifies `courses.faculty_id == session.faculty_id`, preventing instructors from tampering with courses taught by other faculty members.
 
-### 6.2 Deactivated Account Login Prevention
-* **Target:** `http://127.0.0.1:5000/login`
-* **Observation:** When a deactivated user attempts authentication, the server verifies `is_active == 0`, rejects the login with a 403 Forbidden status, logs an `AUTH_REJECTED` audit event, and displays:
+![Faculty Grade Management](documentation/05_faculty_grade_update_cs101.png)
+
+---
+
+## 6. Evidence Item EV-06: Forensic Audit Trail (Non-Repudiation)
+
+### 6.1 Observation & My Testing Process:
+I logged in as `admin_user` and navigated to `/admin/audit`. I reviewed the live audit log table to confirm that all earlier testing activities had been captured chronologically.
+
+* **Observed Result:** The audit trail displayed a detailed record of every security-relevant event:
+  - `LOGIN_SUCCESS` (Legitimate logins)
+  - `LOGIN_RATE_LIMITED` (My brute-force simulation from EV-02)
+  - `ACCESS_DENIED` (Bob's attempted escalation to `/admin/users` from EV-03)
+  - `GRADE_UPDATE` (Prof. Smith's score alteration from EV-05)
+* **Privacy & Security Control:** I verified the `Event Details` column to ensure that **passwords, tokens, and raw session secrets are completely excluded** from logs.
+
+![Administrative Audit Trail](documentation/06_admin_audit_trail_non_repudiation.png)
+
+---
+
+## 7. Evidence Item EV-07: Account Lifecycle & Deactivation
+
+### 7.1 Observation & My Testing Process:
+In the administrative console (`/admin/users`), I located student `bob_student` and clicked the red **Deactivate** button.
+
+* **Observed Result:** The account status immediately switched to red `Deactivated`, and the action button toggled to `Activate`.
+* **Guard Rail Tested:** I also verified that the application prevents administrators from deactivating their own accounts to eliminate accidental self-lockouts.
+
+![Admin Deactivate User](documentation/08_admin_user_deactivation.png)
+
+---
+
+## 8. Evidence Item EV-08: Deactivated Account Login Prevention
+
+### 8.1 Observation & My Testing Process:
+Immediately after deactivating `bob_student`, I logged out and attempted to sign back in using Bob's valid credentials (`bob_student` / `StudentPass123!`).
+
+* **Observed Result:** The application checked `users.is_active` in the database, rejected authentication with an HTTP 403 status, recorded an `AUTH_REJECTED` event in the audit trail, and displayed:
   > *"Your account has been deactivated. Contact an administrator."*
 
-![Deactivated Account Login Blocked](documentation/Screenshot_2026-10-02_19_49_34.png)
+![Deactivated Account Login Blocked](documentation/09_deactivated_account_login_blocked.png)
 
 ---
 
-## 7. Evidence Item EV-07: Automated Test Verification
+## 9. Evidence Item EV-09: Automated Unit Test Suite Execution
 
-### 7.1 Test Suite Execution (18 Checks)
-* **Target:** Terminal execution of `python3 -m unittest discover -s tests -p "test_*.py" -v`
-* **Observation:** All 18 automated unit tests pass 100% with `OK`, validating database initialization, password hashing, session hardening, rate limiting, CSRF tokens, RBAC boundaries, input validation, and security headers.
+### 9.1 Observation & My Testing Process:
+To verify that my security controls are regression-free and consistently enforced, I executed the Python unit test suite:
 
-![Automated Test Suite Pass](documentation/Screenshot_2026-10-02_19_38_46.png)
+```bash
+python3 -m unittest discover -s tests -p "test_*.py" -v
+```
+
+* **Observed Result:** All **18 test cases passed with 100% OK**, confirming parameterized query protections against SQLi, CSRF token validation, security headers (`CSP`, `X-Frame-Options: DENY`), session cookie hardening, and boundary validation.
+
+![Automated Test Suite Pass](documentation/07_automated_unit_tests_pass.png)

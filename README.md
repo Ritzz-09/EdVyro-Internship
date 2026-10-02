@@ -1,6 +1,6 @@
 # 🛡️ EdVyro Cybersecurity Internship Portfolio
 
-> **Intern:** Ritzz (`@Ritzz-09`)  
+> **Intern:** RITHISH S P (`@Ritzz-09`)  
 > **Repository:** [https://github.com/Ritzz-09/EdVyro-Internship](https://github.com/Ritzz-09/EdVyro-Internship)  
 > **Track:** Cybersecurity & Defensive Security Engineering  
 

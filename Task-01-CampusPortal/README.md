@@ -97,4 +97,4 @@ I have structured my analysis into dedicated cybersecurity deliverables:
 
 1. **Defense-in-Depth is Essential:** Implementing parameterized queries prevents SQL injection, but without server-side ownership checks (IDOR defenses), a malicious faculty member could still modify grades in courses they do not teach.
 2. **Threat Modeling Beyond Common Vulnerabilities:** Even with zero OWASP Top 10 vulnerabilities present, architectural weaknesses—such as single-factor authentication on admin accounts and in-memory rate limiting—still expose the system to serious risks.
-3. **The Importance of Non-Repudiation:** Real-time audit trails with user attribution ensure that sensitive operations (like grade changes or account deactivations) cannot be denied later.
+3. **Audit Logging & Accountability:** Real-time audit trails provide essential accountability and forensic telemetry for sensitive operations (such as grade modifications and account deactivations), though cryptographic immutability or strong non-repudiation requires external append-only storage or hash chaining.

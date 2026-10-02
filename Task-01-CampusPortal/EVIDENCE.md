@@ -20,7 +20,7 @@ Below is the summary index of the 9 empirical evidence items I captured during t
 | **EV-03** | **Vertical Privilege Separation** | `GET /admin/users` as Student | [`03_rbac_student_blocked_403.png`](documentation/03_rbac_student_blocked_403.png) | Server-side `@roles_required('admin')` blocked student access, rendered custom 403 Forbidden, and logged `ACCESS_DENIED`. |
 | **EV-04** | **Input Boundary Defense** | `GET /student/profile` | [`04_student_profile_boundary_defense.png`](documentation/04_student_profile_boundary_defense.png) | System identifiers (Student ID, Username, Role) are immutable; input validation confines edits strictly to non-sensitive contact fields. |
 | **EV-05** | **Data Integrity & Ownership** | `POST /faculty/update-grade` | [`05_faculty_grade_update_cs101.png`](documentation/05_faculty_grade_update_cs101.png) | Instructor modified CS101 scores; system recalculated total score (91.0) and letter grade (A+) with an automated `GRADE_UPDATE` audit log. |
-| **EV-06** | **Forensic Audit Logging** | `GET /admin/audit` | [`06_admin_audit_trail_non_repudiation.png`](documentation/06_admin_audit_trail_non_repudiation.png) | Real-time security telemetry recorded chronological lifecycle events (`LOGIN_SUCCESS`, `ACCESS_DENIED`, etc.) with **zero credentials leaked**. |
+| **EV-06** | **Forensic Audit Trail** | `GET /admin/audit` | [`06_admin_audit_trail_non_repudiation.png`](documentation/06_admin_audit_trail_non_repudiation.png) | Real-time security telemetry recorded chronological lifecycle events (`LOGIN_SUCCESS`, `ACCESS_DENIED`, etc.) with **zero credentials leaked**. |
 | **EV-07** | **Automated Test Suite** | Terminal: `python3 -m unittest` | [`07_automated_unit_tests_pass.png`](documentation/07_automated_unit_tests_pass.png) | 18 automated security unit tests passed 100% covering SQLi prevention, password hashing, and CSRF token enforcement. |
 | **EV-08** | **Account Lifecycle (Deactivation)** | `POST /admin/toggle-user-status` | [`08_admin_user_deactivation.png`](documentation/08_admin_user_deactivation.png) | Admin successfully deactivated compromised user `bob_student`; status badge updated to red `Deactivated` in real time. |
 | **EV-09** | **Session Revocation & Lockout** | `POST /login` (Deactivated User) | [`09_deactivated_account_login_blocked.png`](documentation/09_deactivated_account_login_blocked.png) | Server verified `is_active == 0`, immediately rejected login attempt with HTTP 403, and terminated any existing session. |
@@ -87,7 +87,7 @@ I logged in as `prof_smith` (Faculty role) and selected assigned course `CS101 (
 
 ---
 
-## 6. Evidence Item EV-06: Forensic Audit Trail (Non-Repudiation)
+## 6. Evidence Item EV-06: Forensic Audit Trail & Accountability
 
 ### 6.1 Observation & My Testing Process:
 I logged in as `admin_user` and navigated to `/admin/audit`. I reviewed the live audit log table to confirm that all earlier testing activities had been captured chronologically.
@@ -103,39 +103,31 @@ I logged in as `admin_user` and navigated to `/admin/audit`. I reviewed the live
 
 ---
 
-## 7. Evidence Item EV-07: Account Lifecycle & Deactivation
+## Evidence Item EV-08: Account Lifecycle & Deactivation
 
-### 7.1 Observation & My Testing Process:
-In the administrative console (`/admin/users`), I located student `bob_student` and clicked the red **Deactivate** button.
+**Screenshot:** `documentation/08_admin_user_deactivation.png`
 
-* **Observed Result:** The account status immediately switched to red `Deactivated`, and the action button toggled to `Activate`.
-* **Guard Rail Tested:** I also verified that the application prevents administrators from deactivating their own accounts to eliminate accidental self-lockouts.
+This evidence demonstrates the administrative account lifecycle control. An administrator can deactivate a user account through the authorized admin interface. The action is recorded in the application audit log.
 
 ![Admin Deactivate User](documentation/08_admin_user_deactivation.png)
 
 ---
 
-## 8. Evidence Item EV-08: Deactivated Account Login Prevention
+## Evidence Item EV-09: Deactivated Account Login Prevention
 
-### 8.1 Observation & My Testing Process:
-Immediately after deactivating `bob_student`, I logged out and attempted to sign back in using Bob's valid credentials (`bob_student` / `StudentPass123!`).
+**Screenshot:** `documentation/09_deactivated_account_login_blocked.png`
 
-* **Observed Result:** The application checked `users.is_active` in the database, rejected authentication with an HTTP 403 status, recorded an `AUTH_REJECTED` event in the audit trail, and displayed:
-  > *"Your account has been deactivated. Contact an administrator."*
+This evidence demonstrates session and authentication enforcement after account deactivation. A deactivated account is prevented from establishing a new authenticated session.
 
 ![Deactivated Account Login Blocked](documentation/09_deactivated_account_login_blocked.png)
 
 ---
 
-## 9. Evidence Item EV-09: Automated Unit Test Suite Execution
+## Evidence Item EV-07: Automated Unit Test Suite Execution
 
-### 9.1 Observation & My Testing Process:
-To verify that my security controls are regression-free and consistently enforced, I executed the Python unit test suite:
+**Screenshot:** `documentation/07_automated_unit_tests_pass.png`
 
-```bash
-python3 -m unittest discover -s tests -p "test_*.py" -v
-```
-
-* **Observed Result:** All **18 test cases passed with 100% OK**, confirming parameterized query protections against SQLi, CSRF token validation, security headers (`CSP`, `X-Frame-Options: DENY`), session cookie hardening, and boundary validation.
+This evidence demonstrates the automated security regression test suite. All 18 automated tests completed successfully, providing verification coverage for authentication, authorization, CSRF protection, rate limiting, input validation, account lifecycle controls, and related security behavior.
 
 ![Automated Test Suite Pass](documentation/07_automated_unit_tests_pass.png)
+

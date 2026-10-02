@@ -33,13 +33,13 @@
 
 ---
 
-## Priority P2: Medium (Integrity, Defense-in-Depth & Non-Repudiation)
+## Priority P2: Medium (Integrity, Defense-in-Depth & Accountability)
 
 *These controls ensure system state integrity, provide forensic logging, and reduce attack surface.*
 
 | # | Security Control | Why It Matters | Implementation Status | Verification Method |
 | :---: | :--- | :--- | :---: | :--- |
-| **P2-1** | **Tamper-Evident Audit Logging** | Forensics and incident investigation require non-repudiable logs of authentication and state changes. | **Implemented** | System lifecycle events (`LOGIN_SUCCESS`, `LOGIN_FAILURE`, `ACCESS_DENIED`, `GRADE_UPDATE`, `USER_CREATED`) written to `audit_logs`. |
+| **P2-1** | **Security Audit Logging** | Application security events are recorded in the local `audit_logs` SQLite table. The logging mechanism supports accountability and forensic review by recording relevant administrative and security actions.<br><br>**Limitation:** The local SQLite audit log is not cryptographically tamper-evident or externally immutable. Stronger tamper resistance can be achieved through external append-only/WORM storage, hash chaining, or a remote SIEM. | **Implemented** | System lifecycle events (`LOGIN_SUCCESS`, `LOGIN_FAILURE`, `ACCESS_DENIED`, `GRADE_UPDATE`, `USER_CREATED`, `USER_STATUS_TOGGLED`) written to `audit_logs`. |
 | **P2-2** | **Sensitive Credential Exclusion from Logs** | Logging raw passwords or secret tokens in logs creates a secondary data leakage vector. | **Implemented** | Audit logger explicitly accepts only event metadata and status; passwords and tokens are never passed or stored. |
 | **P2-3** | **Security Headers (CSP, Frame-Options, Content-Type)** | Defense-in-depth against UI redressing (clickjacking), MIME sniffing, and script injection. | **Implemented** | Headers injected via `@app.after_request`: `CSP`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`. |
 | **P2-4** | **Strict Server-Side Input Validation** | Client-side controls can be bypassed by sending arbitrary HTTP requests via curl or proxies. | **Implemented** | Whitelist validation on email format, phone format, semester (1–8), departments, and score ranges (0.0–50.0). |

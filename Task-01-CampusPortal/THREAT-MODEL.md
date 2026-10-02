@@ -94,13 +94,12 @@
 - **STRIDE Category:** **Repudiation**
 - **Threat Scenario:** An instructor maliciously alters a student's grade or an administrator deactivates an account, and later denies having performed the action.
 - **Preconditions:** Attacker holds valid faculty or administrator credentials.
-- **Existing Control:** Every grade modification and user status change writes an immutable record to the `audit_logs` table capturing `timestamp` (UTC ISO), `event_type`, `user_id`, `username`, `ip_address`, and before/after details.
+- **Existing Control:** Application-level append-oriented audit logging to the `audit_logs` table capturing `timestamp` (UTC ISO), `event_type`, `user_id`, `username`, `ip_address`, and before/after details.
 - **Likelihood:** Low
 - **Impact:** Medium
 - **Risk Level:** **Low (P3)**
 - **Recommended Mitigation:**
-  - Forward audit logs asynchronously to an append-only, remote syslog server or write-once storage (WORM).
-  - Implement cryptographic hash chaining (blockchain/Merkle tree) across audit rows.
+  - The application audit log provides accountability and forensic evidence for recorded actions. It should not be treated as cryptographically immutable or as providing strong non-repudiation. Stronger guarantees would require external append-only/WORM storage, hash chaining, or equivalent tamper-evident controls.
 - **Verification Step:** Trigger a grade update via `/faculty/update-grade`. Query `SELECT * FROM audit_logs WHERE event_type = 'GRADE_UPDATE'` and confirm username and timestamp are populated.
 
 ---

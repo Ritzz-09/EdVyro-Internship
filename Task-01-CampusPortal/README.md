@@ -86,7 +86,7 @@ python3 -m unittest discover -s tests -p "test_*.py" -v
 I have structured my analysis into dedicated cybersecurity deliverables:
 
 - 📐 [`ARCHITECTURE.md`](ARCHITECTURE.md) — My decomposition of system components, 3 trust boundaries, ER model, and data flow diagrams.
-- 🎯 [`THREAT-MODEL.md`](THREAT-MODEL.md) — My comprehensive STRIDE analysis covering 10 realistic threat scenarios (assets, preconditions, mitigations, and verification steps).
+- 🎯 [`THREAT-MODEL.md`](THREAT-MODEL.md) — My comprehensive STRIDE analysis including a Level-1 Data Flow Diagram (DFD) with trust boundaries and 10 realistic threat scenarios (assets, preconditions, mitigations, and verification steps).
 - 📊 [`RISK-REGISTER.md`](RISK-REGISTER.md) — My ranked qualitative risk matrix evaluating likelihood vs. impact.
 - 🛡️ [`HARDENING-CHECKLIST.md`](HARDENING-CHECKLIST.md) — Prioritized P0 (Critical) to P3 (Low) defensive hardening roadmap.
 - 📸 [`EVIDENCE.md`](EVIDENCE.md) — My personal verification log with all 9 screenshots embedded and annotated.

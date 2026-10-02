@@ -12,60 +12,37 @@
 
 The entire architecture is intentionally compact and self-contained to facilitate rigorous threat modeling and security inspection within a 45–60 minute window.
 
-```
-+-------------------------------------------------------------------------------+
-|                            CLIENT BROWSER (User Agent)                        |
-|   HTML5 / CSS3 / Vanilla JS (No External CDNs, No Third-Party Trackers)       |
-+---------------------------------------+---------------------------------------+
-                                        |
-                   HTTP/1.1 (Localhost 127.0.0.1:5000 Only)
-                   Cookie: session=<signed_session_id>
-                   Headers: Host, User-Agent, X-CSRF-Token / form payload
-                                        |
-========================================v========================================
-[ TRUST BOUNDARY 1: Untrusted Network / Client-Server Boundary ]
-================================================================================
-                                        |
-+---------------------------------------v---------------------------------------+
-|                         FLASK APPLICATION RUNTIME                             |
-|                                                                               |
-|  +-------------------------------------------------------------------------+  |
-|  | Request Interceptors & Security Middleware                              |  |
-|  | - Security Headers: CSP, X-Frame-Options, X-Content-Type-Options        |  |
-|  | - Session Manager: Secure Cookie (HttpOnly, SameSite=Lax)               |  |
-|  | - In-Memory Sliding-Window Login Rate Limiter                           |  |
-|  +-------------------------------------------------------------------------+  |
-|                                        |                                      |
-|  +-------------------------------------------------------------------------+  |
-|  | Controller & Authorization Layer (RBAC)                                 |  |
-|  | - @roles_required('student' | 'faculty' | 'admin')                      |  |
-|  | - Ownership / IDOR Validator (Faculty-Course Association)                |  |
-|  | - CSRF Synchronizer Token Validator                                      |  |
-|  | - Input Validation & Type Whitelisting                                  |  |
-|  +-------------------------------------------------------------------------+  |
-|                                        |                                      |
-|  +-------------------------------------------------------------------------+  |
-|  | Defensive Audit Subsystem                                               |  |
-|  | - Event logger (LOGIN_SUCCESS, ACCESS_DENIED, GRADE_UPDATE, etc.)        |  |
-|  | - Strict exclusion of raw credentials and sensitive secrets             |  |
-|  +-------------------------------------------------------------------------+  |
-+---------------------------------------+---------------------------------------+
-                                        |
-========================================v========================================
-[ TRUST BOUNDARY 2: Application Controller <---> Data Persistence Boundary ]
-================================================================================
-                                        |
-                               Parameterized SQL
-                                (sqlite3 driver)
-                                        |
-+---------------------------------------v---------------------------------------+
-|                         SQLITE 3 DATABASE ENGINE                              |
-|                           (campus_portal.db)                                  |
-|                                                                               |
-|  - users            - students           - faculty                            |
-|  - courses          - enrollments        - grades                             |
-|  - attendance       - announcements      - audit_logs                         |
-+-------------------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    classDef boundary fill:#fef3c7,stroke:#d97706,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef untrusted fill:#fee2e2,stroke:#ef4444,stroke-width:1.5px;
+    classDef trusted fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px;
+    classDef storage fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px;
+
+    subgraph ClientZone ["Untrusted Network Zone"]
+        Browser["User Browser (HTML5 / CSS3 / Vanilla JS)<br/><i>Strict Localhost (127.0.0.1:5000 Only) — No External CDNs</i>"]:::untrusted
+    end
+
+    subgraph TB1 ["== Trust Boundary 1: Untrusted Network / Client-Server Boundary =="]
+        subgraph ServerZone ["Flask Application Runtime (Trusted Boundary)"]
+            direction TB
+            MW["Security Middleware & Filters<br/>• CSP, X-Frame-Options, nosniff, Referrer-Policy<br/>• Sliding-Window Login Rate Limiter (5 per 60s)<br/>• Session Cookie Manager (HttpOnly, SameSite=Lax)"]:::trusted
+            Controller["Controller & Authorization Layer (RBAC)<br/>• @roles_required('student' | 'faculty' | 'admin')<br/>• CSRF Synchronizer Token Validator<br/>• Course-Ownership / IDOR Validator<br/>• Server-Side Input Bounds & Type Validation"]:::trusted
+            Audit["Defensive Audit Subsystem<br/>• Event Logger (audit_logs table)<br/>• Strict Exclusion of Passwords / Raw Secrets"]:::trusted
+
+            MW --> Controller
+            Controller --> Audit
+        end
+    end
+
+    subgraph TB2 ["== Trust Boundary 2: Controller <---> Data Persistence Boundary =="]
+        subgraph StorageZone ["Data Storage Layer"]
+            DB[("SQLite 3 Database Engine<br/>(campus_portal.db)<br/>9 Relational Tables • Foreign Keys Enforced")]:::storage
+        end
+    end
+
+    Browser -->|"HTTP/1.1 (Cookie: session, X-CSRF-Token, Form Data)"| MW
+    Controller -->|"Parameterized SQL Queries (sqlite3 driver with ? bindings)"| DB
 ```
 
 ---
@@ -154,47 +131,64 @@ erDiagram
 ## 4. Key Data Flows
 
 ### 4.1 Authentication & Session Initiation Flow
-```
-User (Browser)               Flask Controller            Rate Limiter / DB           Audit Subsystem
-     |                              |                           |                           |
-     |--- 1. POST /login ---------->|                           |                           |
-     |    (user, pass, csrf)        |--- 2. Check Throttling -->|                           |
-     |                              |<-- Returns (OK / 429) ----|                           |
-     |                              |                           |                           |
-     |                              |--- 3. Query Hash (SQL) -->|                           |
-     |                              |<-- User Record -----------|                           |
-     |                              |                           |                           |
-     |                              |--- 4. Verify Hash --------|                           |
-     |                              |    (scrypt/pbkdf2)        |                           |
-     |                              |                                                       |
-     |                              |--- 5. Write Audit Record ---------------------------->|
-     |                              |       (LOGIN_SUCCESS or LOGIN_FAILURE)                |
-     |<-- 6. Set Session Cookie ----|
-          (HttpOnly, SameSite)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User Browser (127.0.0.1)
+    participant Flask as Flask Controller
+    participant Limiter as In-Memory Rate Limiter
+    participant DB as SQLite 3 (campus_portal.db)
+    participant Audit as Defensive Audit Subsystem
+
+    User->>Flask: POST /login (username, password, csrf_token)
+    Flask->>Limiter: Check failed attempts for (client_ip, username)
+    alt Rate Limit Exceeded (>= 5 failed attempts in 60s)
+        Limiter-->>Flask: Throttled (Locked)
+        Flask->>Audit: Record LOGIN_RATE_LIMITED
+        Flask-->>User: HTTP 429 Too Many Requests (Wait 60s)
+    else Within Rate Limits
+        Limiter-->>Flask: Allowed (< 5 attempts)
+        Flask->>DB: Query user hash: SELECT * FROM users WHERE username = ?
+        DB-->>Flask: Return user record & salted password hash
+        Flask->>Flask: Verify password hash (scrypt / pbkdf2)
+        alt Authentication Failed (Incorrect Password)
+            Flask->>Limiter: Increment failed attempt counter (+1)
+            Flask->>Audit: Record LOGIN_FAILURE (username, client_ip)
+            Flask-->>User: HTTP 401 Unauthorized ("Invalid username or password")
+        else Authentication Successful & Account Active
+            Flask->>Limiter: Reset failed attempt counter
+            Flask->>Audit: Record LOGIN_SUCCESS (user_id, username, client_ip)
+            Flask-->>User: HTTP 302 Redirect + Set Session Cookie (HttpOnly=True, SameSite=Lax)
+        end
+    end
 ```
 
-### 4.2 Faculty Grade Modification Flow
-```
-Faculty Browser              Flask Controller            Database (SQL)              Audit Subsystem
-     |                              |                           |                           |
-     |--- 1. POST /update-grade --->|                           |                           |
-     |    (csrf, grade_id, scores)  |--- 2. Validate CSRF ------|                           |
-     |                              |--- 3. Validate Role ------|                           |
-     |                              |    (@roles_required)      |                           |
-     |                              |                           |                           |
-     |                              |--- 4. Check Ownership --->|                           |
-     |                              |    (Verify Course-Faculty)|                           |
-     |                              |<-- Authorized ------------|                           |
-     |                              |                           |                           |
-     |                              |--- 5. Validate Bounds ----|                           |
-     |                              |    (0.0 <= score <= 50.0) |                           |
-     |                              |                           |                           |
-     |                              |--- 6. Parameterized UPDATE>|                           |
-     |                              |       (Grades Table)      |                           |
-     |                              |                                                       |
-     |                              |--- 7. Record Telemetry ------------------------------>|
-     |                              |       (GRADE_UPDATE with Student & Course IDs)        |
-     |<-- 8. 302 Redirect + Flash --|
+### 4.2 Faculty Grade Modification Flow (IDOR Defense)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Faculty as Faculty Browser
+    participant Flask as Flask Controller
+    participant DB as SQLite 3 (campus_portal.db)
+    participant Audit as Defensive Audit Subsystem
+
+    Faculty->>Flask: POST /faculty/update-grade (csrf_token, grade_id, midterm, final)
+    Flask->>Flask: Validate CSRF Synchronizer Token
+    Flask->>Flask: Enforce RBAC (@roles_required('faculty'))
+    Flask->>DB: Verify Ownership: courses.faculty_id == session.faculty_id
+    alt Ownership Check Fails (Horizontal Tampering / IDOR Attempt)
+        DB-->>Flask: Mismatch: Course taught by another instructor
+        Flask->>Audit: Record ACCESS_DENIED (unauthorized grade tampering attempt)
+        Flask-->>Faculty: HTTP 403 Forbidden ("Access Denied: Course ownership mismatch")
+    else Ownership Confirmed (Authorized Instructor)
+        DB-->>Flask: Authorized instructor confirmed
+        Flask->>Flask: Validate numerical bounds (0.0 <= score <= 50.0)
+        Flask->>DB: Parameterized UPDATE grades SET midterm=?, final=?, letter_grade=?
+        Flask->>Audit: Record GRADE_UPDATE (student_id, course_id, old_marks, new_marks)
+        Flask-->>Faculty: HTTP 302 Redirect + Flash Success Message
+    end
 ```
 
 ---

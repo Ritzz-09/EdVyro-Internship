@@ -19,7 +19,63 @@
 
 ---
 
-## 2. Comprehensive STRIDE Threat Analysis
+## 2. STRIDE Data Flow Diagram (DFD Level 1) & Trust Boundaries
+
+The following Data Flow Diagram (DFD Level 1) illustrates the core processes, data stores, external entities, and trust boundaries evaluated under the STRIDE methodology:
+
+```mermaid
+flowchart TD
+    classDef entity fill:#f3f4f6,stroke:#4b5563,stroke-width:2px;
+    classDef process fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
+    classDef store fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
+    classDef boundary fill:#fffbeb,stroke:#d97706,stroke-width:2px,stroke-dasharray: 5 5;
+
+    subgraph ExternalEntities ["External Entities (Untrusted Zone)"]
+        E1["👤 Student Client"]:::entity
+        E2["👨‍🏫 Faculty Client"]:::entity
+        E3["🛡️ Administrator Client"]:::entity
+        E4["⚠️ Unauthenticated / Attacker"]:::entity
+    end
+
+    subgraph TB1 ["== TRUST BOUNDARY 1: Untrusted Network Boundary (127.0.0.1:5000) =="]
+        subgraph Processes ["CampusPortal Core Processes"]
+            P1["P1: Authentication & Session Throttler<br/><i>(Protects A-1: Credentials)</i>"]:::process
+            P2["P2: Student Profile & Record Viewer<br/><i>(Protects A-3: PII, A-2: Grades)</i>"]:::process
+            P3["P3: Faculty Grade Manager & IDOR Guard<br/><i>(Protects A-2: Academic Integrity)</i>"]:::process
+            P4["P4: Admin Lifecycle & User Provisioning<br/><i>(Protects A-6: Role State)</i>"]:::process
+            P5["P5: Defensive Audit Logging Subsystem<br/><i>(Protects A-4: Audit Trail)</i>"]:::process
+        end
+    end
+
+    subgraph TB2 ["== TRUST BOUNDARY 2: Data Persistence Boundary (Parameterized SQL) =="]
+        subgraph DataStores ["Data Stores"]
+            DS1[("DS-1: In-Memory Sliding Window<br/><i>(Failed Login Throttling Cache)</i>")]:::store
+            DS2[("DS-2: SQLite Database<br/><i>(campus_portal.db - 9 Tables)</i>")]:::store
+            DS3[("DS-3: Security Audit Trail<br/><i>(audit_logs Table)</i>")]:::store
+        end
+    end
+
+    E1 -->|"HTTP GET/POST (Cookie, CSRF)"| P2
+    E2 -->|"HTTP GET/POST (Cookie, CSRF)"| P3
+    E3 -->|"HTTP GET/POST (Cookie, CSRF)"| P4
+    E4 -->|"POST /login (Credentials)"| P1
+
+    P1 <-->|"Track / Check Failures"| DS1
+    P1 <-->|"Verify Scrypt/PBKDF2 Hash"| DS2
+    P2 <-->|"Query Personal Enrolled Data"| DS2
+    P3 <-->|"Validate Ownership & Update Marks"| DS2
+    P4 <-->|"Manage Accounts & Active State"| DS2
+
+    P1 -.->|"Log Auth Events"| P5
+    P2 -.->|"Log Profile Edits"| P5
+    P3 -.->|"Log Grade Adjustments"| P5
+    P4 -.->|"Log Admin Actions"| P5
+    P5 -->|"Append-Only Record"| DS3
+```
+
+---
+
+## 3. Comprehensive STRIDE Threat Analysis
 
 ### Threat TM-01: Credential Spoofing via Online Password Guessing
 - **Asset:** A-1 (User Credentials)

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 02: Secure Authentication Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="badge">EdVyro Cybersecurity Internship</div>
+      <h1>🛡️ Secure Authentication Lab</h1>
+      <p class="subtitle">A defensive demonstration of local authentication security controls</p>
+    </header>
+
+    <div class="grid">
+      <!-- Registration Card -->
+      <section class="card" id="register-card">
+        <h2>1. User Registration</h2>
+        <p class="card-desc">Tests server-side validation & salted bcrypt hashing.</p>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" placeholder="e.g. sec_cadet" required minlength="3" maxlength="30">
+            <small>3–30 characters, alphanumeric & underscores</small>
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="Min. 8 characters" required minlength="8">
+            <small>Minimum 8 characters (max 128)</small>
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-register">Register User</button>
+        </form>
+        <div class="alert hidden" id="register-alert"></div>
+      </section>
+
+      <!-- Login Card -->
+      <section class="card" id="login-card">
+        <h2>2. User Login</h2>
+        <p class="card-desc">Tests generic auth errors, rate limiting & session creation.</p>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="e.g. sec_cadet" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Your password" required>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="btn-login">Login</button>
+            <button type="button" class="btn btn-warning" id="btn-simulate-fail">Trigger Failed Attempt</button>
+          </div>
+        </form>
+        <div class="alert hidden" id="login-alert"></div>
+      </section>
+    </div>
+
+    <!-- Protected Dashboard Card -->
+    <section class="card full-width" id="dashboard-card">
+      <div class="dashboard-header">
+        <div>
+          <h2>3. Protected Route Dashboard</h2>
+          <p class="card-desc">Accessible only with a valid, active server-side session cookie.</p>
+        </div>
+        <div class="status-indicator">
+          <span class="dot" id="auth-dot"></span>
+          <span id="auth-status-text">Checking session...</span>
+        </div>
+      </div>
+
+      <div id="unauthenticated-view">
+        <p class="hint">🔒 You are not currently authenticated. Register and log in above to access protected data.</p>
+        <button class="btn btn-secondary" id="btn-check-protected">Test Protected Route (/api/profile)</button>
+      </div>
+
+      <div id="authenticated-view" class="hidden">
+        <div class="profile-box">
+          <p><strong>Authenticated User:</strong> <span id="user-display"></span></p>
+          <p><strong>User ID:</strong> <span id="user-id-display"></span></p>
+          <p><strong>Account Created:</strong> <span id="user-created-display"></span></p>
+          <p><strong>Session Cookie:</strong> <code>connect.sid</code> (HttpOnly, SameSite=Lax)</p>
+          <p class="security-check">✅ <em>Sensitive credentials (password / bcrypt hashes) are completely omitted from response.</em></p>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" id="btn-logout">Logout (Invalidate Session)</button>
+          <button class="btn btn-secondary" id="btn-refresh-profile">Refresh Protected Data</button>
+        </div>
+      </div>
+      <div class="alert hidden" id="dashboard-alert"></div>
+    </section>
+
+    <!-- Telemetry & Security Controls Panel -->
+    <section class="card full-width info-card">
+      <h2>🔍 Defensive Security Controls in Effect</h2>
+      <div class="telemetry-grid">
+        <div class="telemetry-item">
+          <h4>🔐 Password Hashing</h4>
+          <p>Bcrypt adaptive salt + work factor 10. Passwords are never stored or logged in plaintext.</p>
+        </div>
+        <div class="telemetry-item">
+          <h4>🛡️ Server-Side Validation</h4>
+          <p>Strict type checking, regex whitelist for usernames, and length boundary controls.</p>
+        </div>
+        <div class="telemetry-item">
+          <h4>🍪 Hardened Sessions</h4>
+          <p>Server-side session store with <code>HttpOnly</code> and <code>SameSite=Lax</code> cookie flags.</p>
+        </div>
+        <div class="telemetry-item">
+          <h4>⏱️ Rate Limiting</h4>
+          <p>Sliding window rate-limiter prevents automated brute-force attacks by issuing HTTP 429.</p>
+        </div>
+        <div class="telemetry-item">
+          <h4>🚫 Generic Auth Errors</h4>
+          <p>Returns identical <code>"Invalid username or password."</code> to block username enumeration.</p>
+        </div>
+        <div class="telemetry-item">
+          <h4>🚪 Explicit Invalidation</h4>
+          <p>Logout explicitly destroys the server-side session and wipes client cookie.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

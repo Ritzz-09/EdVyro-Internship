@@ -1,0 +1,8 @@
+[
+  {
+    "id": "sample-user-id",
+    "username": "example_user",
+    "passwordHash": "$2a$10$abcdefghijklmnopqrstuvw...",
+    "createdAt": "2026-10-03T00:00:00.000Z"
+  }
+]

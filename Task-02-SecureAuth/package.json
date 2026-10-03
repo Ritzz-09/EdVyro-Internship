@@ -1,0 +1,29 @@
+{
+  "name": "task-02-secure-auth",
+  "version": "1.0.0",
+  "description": "Secure Authentication Lab demonstrating defensive authentication controls",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "cybersecurity",
+    "defensive-security",
+    "authentication",
+    "bcrypt",
+    "sessions",
+    "rate-limiting"
+  ],
+  "author": "Ritzz (@Ritzz-09)",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.19.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}

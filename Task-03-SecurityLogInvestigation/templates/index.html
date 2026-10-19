@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 03: Security Log Investigation SOC Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <span class="shield-icon">🛡️</span>
+                <div>
+                    <h1 class="brand-title">EdVyro SOC Investigation Console</h1>
+                    <span class="brand-subtitle">Task 03: Security Log Investigation • Ref: SEC-INC-2026-0801</span>
+                </div>
+            </div>
+            <div class="user-pill">
+                <span class="status-indicator"></span>
+                <span>Analyst: <strong>RITHISH S P</strong> (<code>@Ritzz-09</code>)</span>
+                <span class="badge badge-amber">TLP:AMBER</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- TOP STATS -->
+        <section class="metrics-grid">
+            <div class="card metric-card">
+                <div class="metric-title">Ingested Log Events</div>
+                <div class="metric-value">{{ records|length }}</div>
+                <div class="metric-sub">Normalized ISO-8601 UTC</div>
+            </div>
+            <div class="card metric-card border-red">
+                <div class="metric-title">Critical Threat Vectors</div>
+                <div class="metric-value text-red">2</div>
+                <div class="metric-sub">Brute-Force & Password Spray</div>
+            </div>
+            <div class="card metric-card border-amber">
+                <div class="metric-title">Unusual Access Anomalies</div>
+                <div class="metric-value text-amber">1</div>
+                <div class="metric-sub">Post-Spray Anomaly (stu-311)</div>
+            </div>
+            <div class="card metric-card border-green">
+                <div class="metric-title">Containment Status</div>
+                <div class="metric-value text-green">ACTIVE</div>
+                <div class="metric-sub">Edge Rate Limit & Lockout Engaged</div>
+            </div>
+        </section>
+
+        <!-- TABS NAV -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('logs')">📋 Log Telemetry (12)</button>
+            <button class="tab-btn" onclick="switchTab('alerts')">🚨 Detection Alerts ({{ alerts|length }})</button>
+            <button class="tab-btn" onclick="switchTab('timeline')">⏱️ Evidence vs. Assumptions</button>
+            <button class="tab-btn" onclick="switchTab('threat-model')">🎯 Threat Model (6-Part)</button>
+            <button class="tab-btn" onclick="switchTab('containment')">🛑 Containment Simulator</button>
+            <button class="tab-btn" onclick="switchTab('report')">📑 Incident Report PDF</button>
+        </div>
+
+        <!-- TAB 1: LOG TELEMETRY -->
+        <div id="tab-logs" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Normalized Authentication Event Stream</h2>
+                    <input type="text" id="logSearch" placeholder="Filter by User, IP, Action, Device..." class="search-box" onkeyup="filterLogs()">
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="logsTable">
+                        <thead>
+                            <tr>
+                                <th>Timestamp (UTC)</th>
+                                <th>Δt</th>
+                                <th>Account</th>
+                                <th>Source IP & Subnet</th>
+                                <th>Trust Level</th>
+                                <th>Event Category</th>
+                                <th>Action</th>
+                                <th>Result</th>
+                                <th>Device</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in records %}
+                            <tr>
+                                <td><code>{{ r.timestamp_iso }}</code></td>
+                                <td>+{{ r.delta_seconds_from_prev }}s</td>
+                                <td><strong>{{ r.user_id }}</strong></td>
+                                <td>
+                                    <code>{{ r.source_ip }}</code>
+                                    <span class="sub-label">({{ r.network_label }})</span>
+                                </td>
+                                <td>
+                                    {% if r.trust_level == 'Trusted' %}
+                                        <span class="badge badge-green">{{ r.trust_level }}</span>
+                                    {% elif r.trust_level == 'Hostile / Suspect' %}
+                                        <span class="badge badge-red">{{ r.trust_level }}</span>
+                                    {% else %}
+                                        <span class="badge badge-gray">{{ r.trust_level }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="cat-pill">{{ r.event_category }}</span></td>
+                                <td><code>{{ r.event_raw }}</code></td>
+                                <td>
+                                    {% if r.result_normalized == 'SUCCESS' %}
+                                        <span class="badge badge-green">SUCCESS</span>
+                                    {% elif r.result_normalized == 'FAILURE' %}
+                                        <span class="badge badge-red">FAILURE</span>
+                                    {% else %}
+                                        <span class="badge badge-amber">BLOCKED</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if r.device_anomaly %}
+                                        <span class="badge badge-red">⚠️ {{ r.device_raw }}</span>
+                                    {% else %}
+                                        <span>{{ r.device_raw }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DETECTION ALERTS -->
+        <div id="tab-alerts" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Defensible Detection Rules Engine (MITRE ATT&CK Correlated)</h2>
+                </div>
+                <div class="alerts-grid">
+                    {% for a in alerts %}
+                    <div class="alert-box {% if a.severity == 'CRITICAL' %}alert-crit{% elif a.severity == 'HIGH' %}alert-high{% else %}alert-med{% endif %}">
+                        <div class="alert-head">
+                            <span class="badge {% if a.severity == 'CRITICAL' %}badge-red{% else %}badge-amber{% endif %}">{{ a.severity }}</span>
+                            <span class="alert-rule-id"><code>{{ a.rule_id }}</code></span>
+                            <span class="mitre-tag">{{ a.mitre_technique }}</span>
+                        </div>
+                        <h3 class="alert-title">{{ a.rule_name }}</h3>
+                        <p class="alert-desc">{{ a.description }}</p>
+                        <div class="alert-meta">
+                            <div><strong>Target Accounts:</strong> {{ a.target_accounts|join(', ') }}</div>
+                            <div><strong>Source IP(s):</strong> {{ a.source_ips|join(', ') }}</div>
+                            <div><strong>Time Window:</strong> {{ a.start_time }} ➔ {{ a.end_time }}</div>
+                        </div>
+                        <div class="alert-footer">
+                            <strong>Recommended Action:</strong> {{ a.recommended_action }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: TIMELINE (EVIDENCE VS ASSUMPTIONS) -->
+        <div id="tab-timeline" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Forensic Chronology: Separating Empirical Evidence from Assumptions</h2>
+                </div>
+                <div class="timeline-container">
+                    {% for t in timeline %}
+                    <div class="timeline-row">
+                        <div class="timeline-time">
+                            <code>{{ t.timestamp }}</code>
+                            <span class="badge {% if t.result == 'SUCCESS' %}badge-green{% elif t.result == 'FAILURE' %}badge-red{% else %}badge-amber{% endif %}">{{ t.result }}</span>
+                        </div>
+                        <div class="timeline-body">
+                            <div class="timeline-phase-tag">{{ t.phase }}</div>
+                            <div class="timeline-core-info">
+                                <strong>User:</strong> <code>{{ t.user_id }}</code> | 
+                                <strong>IP:</strong> <code>{{ t.source_ip }}</code> ({{ t.network_zone }}) | 
+                                <strong>Device:</strong> {{ t.device }}
+                            </div>
+                            <div class="evidence-grid">
+                                <div class="evidence-col">
+                                    <div class="col-heading text-blue">🔍 Empirical Log Evidence (Facts)</div>
+                                    <p>{{ t.empirical_evidence }}</p>
+                                </div>
+                                <div class="assumption-col">
+                                    <div class="col-heading text-purple">💡 Analytical Hypotheses (Assumptions)</div>
+                                    <p><em>{{ t.analytical_assumptions }}</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: THREAT MODEL -->
+        <div id="tab-threat-model" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>EdVyro Defensive Lab Threat Model (6-Part Framework)</h2>
+                </div>
+                <div class="threat-grid">
+                    <div class="threat-item-card">
+                        <h3>1. Vertical Brute-Force Password Guessing (T1110.001)</h3>
+                        <ul>
+                            <li><strong>Asset & Owner:</strong> Account <code>stu-117</code> and login service (Owner: University IT).</li>
+                            <li><strong>Trust Boundary & Entry:</strong> External ISP (<code>198.51.100.27</code>) to <code>POST /api/v1/auth/login</code>.</li>
+                            <li><strong>Scenario & Precondition:</strong> External actor tests passwords against <code>stu-117</code>. Precondition: Valid username known.</li>
+                            <li><strong>Existing Control & Evidence:</strong> Account locked after 3 failures in 34s (event logged at 09:05:03Z).</li>
+                            <li><strong>Risk Rating & Rationale:</strong> <span class="badge badge-amber">MEDIUM</span> — Attack stopped, but lockout creates an unauthenticated DoS on victim.</li>
+                            <li><strong>Mitigation & Verification:</strong> Implement CAPTCHA after 2 failures; replace hard lockout with progressive 5m backoff.</li>
+                        </ul>
+                    </div>
+
+                    <div class="threat-item-card border-red">
+                        <h3>2. Horizontal Password Spraying (T1110.003)</h3>
+                        <ul>
+                            <li><strong>Asset & Owner:</strong> University student directory and central IAM store.</li>
+                            <li><strong>Trust Boundary & Entry:</strong> Untrusted proxy (<code>203.0.113.42</code>) to public login endpoint.</li>
+                            <li><strong>Scenario & Precondition:</strong> Attacker tests 1 common password across 4 accounts in 12s to evade account lockout thresholds.</li>
+                            <li><strong>Existing Control & Evidence:</strong> Edge rate limiter blocked <code>203.0.113.42</code> at 09:22:01Z.</li>
+                            <li><strong>Risk Rating & Rationale:</strong> <span class="badge badge-red">CRITICAL</span> — High probability of compromise if any student has a weak password.</li>
+                            <li><strong>Mitigation & Verification:</strong> Mandatory MFA; IP velocity limit (&lt;2 accounts/5m per IP); drop <code>unknown</code> User-Agents.</li>
+                        </ul>
+                    </div>
+
+                    <div class="threat-item-card border-amber">
+                        <h3>3. Post-Spray Unusual Access Anomaly (T1078)</h3>
+                        <ul>
+                            <li><strong>Asset & Owner:</strong> Academic records and session tokens of <code>stu-311</code>.</li>
+                            <li><strong>Trust Boundary & Entry:</strong> Internal Campus Wi-Fi (<code>192.0.2.99</code>) to portal application.</li>
+                            <li><strong>Scenario & Precondition:</strong> Account targeted in spray logs in successfully 145m later from campus on iOS.</li>
+                            <li><strong>Existing Control & Evidence:</strong> Password auth succeeded (HTTP 200). No MFA challenge logged.</li>
+                            <li><strong>Risk Rating & Rationale:</strong> <span class="badge badge-amber">HIGH</span> — Requires out-of-band verification to separate legitimate student from attacker proxy.</li>
+                            <li><strong>Mitigation & Verification:</strong> Immediate session revocation; out-of-band identity challenge; campus Wi-Fi MAC audit.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: CONTAINMENT SIMULATOR -->
+        <div id="tab-containment" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Interactive Tactical Containment Console</h2>
+                </div>
+                <div class="containment-actions">
+                    <div class="action-card">
+                        <h4>1. Edge IP Null-Route</h4>
+                        <p>Inject boundary firewall drop rule to null-route hostile proxy <code>203.0.113.42</code>.</p>
+                        <button class="btn btn-red" onclick="executeContainment('block_ip', '203.0.113.42')">🚫 Block 203.0.113.42</button>
+                    </div>
+                    <div class="action-card">
+                        <h4>2. Revoke Sprayed User Session</h4>
+                        <p>Terminate active sessions and revoke JWT tokens for account <code>stu-311</code>.</p>
+                        <button class="btn btn-amber" onclick="executeContainment('revoke_session', 'stu-311')">⚡ Revoke stu-311 Tokens</button>
+                    </div>
+                    <div class="action-card">
+                        <h4>3. Unlock Brute-Forced User</h4>
+                        <p>Restore access for locked account <code>stu-117</code> after out-of-band verification.</p>
+                        <button class="btn btn-green" onclick="executeContainment('unlock_account', 'stu-117')">🔓 Unlock stu-117</button>
+                    </div>
+                </div>
+
+                <div class="audit-stream">
+                    <h3>Containment Execution Audit Log</h3>
+                    <ul id="containmentLogList">
+                        {% for log in containment_log %}
+                        <li><strong>[{{ log.time }}]</strong> {{ log.message }}</li>
+                        {% else %}
+                        <li class="empty-state">No manual containment actions triggered in this session yet. Click an action above to execute.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: REPORT DOWNLOAD -->
+        <div id="tab-report" class="tab-content">
+            <div class="card text-center">
+                <h2>Executive Incident Investigation Report (PDF)</h2>
+                <p>Complete 6-page formal digital forensics report compiled with WeasyPrint, featuring high-resolution charts, threat models, and sign-offs.</p>
+                <div class="report-actions">
+                    <a href="/download/report" target="_blank" class="btn btn-primary">📥 Open / Download INCIDENT-REPORT.pdf</a>
+                </div>
+                <div class="pdf-preview-box">
+                    <iframe src="/download/report" width="100%" height="600px" style="border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 15px;"></iframe>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>EdVyro Cybersecurity Internship • Portfolio Task 03 • Author: <strong>RITHISH S P</strong> (<code>@Ritzz-09</code>)</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

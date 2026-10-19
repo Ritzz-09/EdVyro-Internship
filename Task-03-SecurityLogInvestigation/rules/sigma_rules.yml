@@ -1,0 +1,89 @@
+title: Authentication Security Detection Rules (Sigma Standard)
+description: Production-grade Sigma detection definitions for brute-force, password spraying, and anomalous access.
+author: Rithish S P (EdVyro Cybersecurity Intern)
+date: 2026-10-11
+status: stable
+---
+title: Targeted Vertical Brute Force Password Guessing
+id: 5a1e2f30-8c29-4d6b-9e12-4f3b0e1a2c3d
+status: stable
+description: Detects multiple failed authentication attempts against a single user account in rapid succession.
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+tags:
+    - attack.credential_access
+    - attack.t1110.001
+logsource:
+    category: authentication
+    product: student_portal
+detection:
+    selection:
+        event: password_login
+        result: failure
+    timeframe: 2m
+    condition: selection | count(event) by user_id > 2
+fields:
+    - user_id
+    - source_ip
+    - device
+falsepositives:
+    - Legitimate user forgetting password or entering typo repeatedly.
+level: high
+
+---
+title: Horizontal Password Spraying Attack
+id: 7b2f3a41-9d30-4e7c-8f23-5e4c1f2b3d4e
+status: stable
+description: Detects a single source IP attempting failed logins against multiple distinct user accounts within a short timeframe.
+references:
+    - https://attack.mitre.org/techniques/T1110/003/
+tags:
+    - attack.credential_access
+    - attack.t1110.003
+logsource:
+    category: authentication
+    product: student_portal
+detection:
+    selection:
+        event: password_login
+        result: failure
+    timeframe: 5m
+    condition: selection | count_distinct(user_id) by source_ip > 2
+fields:
+    - source_ip
+    - user_id
+    - device
+falsepositives:
+    - Shared NAT egress gateway or campus lab proxy where multiple users have forgotten passwords simultaneously (rare in 5m).
+level: critical
+
+---
+title: Unusual Successful Login Following Threat Targeting
+id: 9c3e4b52-0e41-4f8d-9a34-6f5d2e3c4e5f
+status: experimental
+description: Detects successful login for an account that was targeted in a password spray or brute force within the past 4 hours from a new subnet or device.
+references:
+    - https://attack.mitre.org/techniques/T1078/
+tags:
+    - attack.persistence
+    - attack.initial_access
+    - attack.t1078
+logsource:
+    category: authentication
+    product: student_portal
+detection:
+    spray_target:
+        event: password_login
+        result: failure
+    success_login:
+        event: password_login
+        result: success
+    timeframe: 4h
+    condition: spray_target followed by success_login by user_id
+fields:
+    - user_id
+    - source_ip
+    - device
+falsepositives:
+    - Legitimate user successfully authenticating after adversary failed to guess their password.
+level: high

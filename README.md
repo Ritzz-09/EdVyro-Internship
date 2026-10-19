@@ -16,7 +16,7 @@ Each task is organized into a dedicated, self-contained folder containing full s
 |:---:|:---|:---|:---|:---:|
 | **Task 01** | **[CampusPortal — Threat-Modeling & Defensive SIS Lab](./Task-01-CampusPortal/)** | Application Security & Threat Modeling | STRIDE Threat Model, Risk Register, Hardening Roadmap, 18 Automated Unit Tests, 9 Screenshot Evidences | ✅ **Completed** |
 | **Task 02** | **[SecureAuth — Secure Authentication Lab Service](./Task-02-SecureAuth/)** | Authentication & Defensive Application Security | Bcrypt Hashing, Session Hardening, Rate Limiting, Generic Auth Errors, 21 Automated Unit Tests | ✅ **Completed** |
-| **Task 03** | *Upcoming Internship Task* | Vulnerability Assessment | Remediation Analysis, Tool Output | ⏳ Planned |
+| **Task 03** | **[Security Log Investigation — Forensic DFIR & Threat Analysis](./Task-03-SecurityLogInvestigation/)** | Digital Forensics & Incident Response (DFIR) | Normalized RFC 5737 Logs, Detection Rules (Sigma/SPL), Evidence vs Assumptions Timeline, Incident Report PDF, 7 Automated Tests | ✅ **Completed** |
 
 ---
 
@@ -124,4 +124,52 @@ npm start
 ```
 
 Open your browser to: **`http://127.0.0.1:3000`**
+
+---
+
+## 🔍 Task 03 Highlight: Security Log Investigation & DFIR Analysis
+
+**Direct Directory Link:** [`./Task-03-SecurityLogInvestigation/`](./Task-03-SecurityLogInvestigation/)
+
+### 🎯 My Objective
+I was tasked with conducting a digital forensics and incident response (DFIR) investigation on a synthetic student portal authentication log (`authentication-log-sample.csv`) containing 12 events. The objective was to turn raw event records into **defensible detection findings**, reconstruct a verifiable **incident timeline** strictly separating empirical evidence from analytical assumptions, define production-ready **SIEM detection rules**, and compile a publication-grade executive **Incident Report PDF**.
+
+### 🛡️ Key Forensic Findings
+1. **Targeted Vertical Brute Force (`T1110.001`):** External host `198.51.100.27` (Windows) executed 3 consecutive failed logins against account `stu-117` in 34 seconds (pacing: 17s delta), triggering an automated account lockout at 09:05:03Z.
+2. **Horizontal Password Spraying (`T1110.003`):** Hostile proxy IP `203.0.113.42` targeted 4 distinct accounts (`stu-209`, `stu-311`, `stu-415`, `stu-502`) in 12 seconds with missing/generic User-Agent (`unknown`), triggering an edge rate-limiting block at 09:22:01Z.
+3. **Post-Spray Access Anomaly (`T1078`):** Sprayed user `stu-311` authenticated successfully 145 minutes post-spray from internal campus network `192.0.2.99` on an `iOS` device. Differentiated benign student arrival hypothesis from credential compromise, recommending immediate out-of-band identity verification and token revocation.
+
+### 📑 Task 03 Documentation & Code Deliverables
+Inside [`./Task-03-SecurityLogInvestigation/`](./Task-03-SecurityLogInvestigation/):
+- 🎥 [`documentation/demo-task3.mp4`](./Task-03-SecurityLogInvestigation/documentation/demo-task3.mp4) — Live demonstration video walkthrough (1080p Full HD, 01:38.5 duration).
+- 📸 [`EVIDENCE.md`](./Task-03-SecurityLogInvestigation/EVIDENCE.md) — Step-by-step verification log embedding 10 screenshots from [`documentation/`](./Task-03-SecurityLogInvestigation/documentation/).
+- 📘 [`INCIDENT-REPORT.pdf`](./Task-03-SecurityLogInvestigation/INCIDENT-REPORT.pdf) — Complete 6-page executive report rendered via WeasyPrint with timeline charts and threat model.
+- 📓 [`notebooks/security_investigation.ipynb`](./Task-03-SecurityLogInvestigation/notebooks/security_investigation.ipynb) — Interactive Jupyter investigation notebook with dataframes, detection algorithms, and plots.
+- ⏱️ [`TIMELINE.md`](./Task-03-SecurityLogInvestigation/TIMELINE.md) — 12-event forensic reconstruction strictly separating empirical evidence from analytical assumptions.
+- 🎯 [`THREAT-MODEL.md`](./Task-03-SecurityLogInvestigation/THREAT-MODEL.md) — 6-part defensive lab threat model (Asset, Boundary, Scenario, Existing Control, Risk Rating, Mitigation).
+- 🚨 [`rules/sigma_rules.yml`](./Task-03-SecurityLogInvestigation/rules/sigma_rules.yml) & [`rules/siem_queries.spl`](./Task-03-SecurityLogInvestigation/rules/siem_queries.spl) — Production-ready Sigma rules and Splunk SPL hunting queries.
+- 🔒 [`HARDENING-AND-CONTAINMENT.md`](./Task-03-SecurityLogInvestigation/HARDENING-AND-CONTAINMENT.md) — Tactical containment playbooks, multi-tier rate limiting, and JA3/JA4 TLS logging upgrades.
+- 🧪 [`tests/test_detection_engine.py`](./Task-03-SecurityLogInvestigation/tests/test_detection_engine.py) — 7 automated unit tests passing with 100% success.
+- ✅ [`CHECKLIST.md`](./Task-03-SecurityLogInvestigation/CHECKLIST.md) — Passing checklist verification log.
+
+### 🚀 How to Run Task 03 Locally
+
+```bash
+cd Task-03-SecurityLogInvestigation
+
+# Run 7 automated security unit tests
+python3 -m unittest discover -s tests -p "test_*.py" -v
+
+# Run log normalizer and detection engine
+python3 src/normalizer.py
+python3 src/detection_engine.py
+
+# Re-generate the executive PDF report
+python3 src/generate_report_pdf.py
+
+# Start the interactive SOC investigation dashboard
+python3 app.py
+```
+
+Open your browser to: **`http://127.0.0.1:8080`**
 

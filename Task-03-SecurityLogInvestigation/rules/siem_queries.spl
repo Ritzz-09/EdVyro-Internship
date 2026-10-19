@@ -1,0 +1,63 @@
+-- =====================================================================
+-- SIEM Detection Queries & Hunting Logic
+-- Splunk (SPL) & SQL / Log Analytics
+-- Track: Cyber Security | Task 03: Security Log Investigation
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 1. SPLUNK SPL: Targeted Vertical Brute Force (T1110.001)
+-- ---------------------------------------------------------------------
+-- Description: Triggers when an individual account experiences 3 or more failed logins within 2 minutes.
+
+index=student_portal sourcetype=auth_logs event="password_login" result="failure"
+| bin _time span=2m
+| stats count as failure_count, values(source_ip) as attacking_ips, values(device) as devices by user_id, _time
+| where failure_count >= 3
+| eval alert_severity="HIGH", threat_technique="T1110.001 - Brute Force"
+
+
+-- ---------------------------------------------------------------------
+-- 2. SPLUNK SPL: Horizontal Password Spraying (T1110.003)
+-- ---------------------------------------------------------------------
+-- Description: Triggers when a single IP attempts logins across 3 or more distinct user accounts within 5 minutes.
+
+index=student_portal sourcetype=auth_logs event="password_login" result="failure"
+| bin _time span=5m
+| stats dc(user_id) as distinct_users_targeted, values(user_id) as targeted_accounts, count as total_attempts, values(device) as devices by source_ip, _time
+| where distinct_users_targeted >= 3
+| eval alert_severity="CRITICAL", threat_technique="T1110.003 - Password Spraying"
+
+
+-- ---------------------------------------------------------------------
+-- 3. SPLUNK SPL: Anomaly / Post-Spray Compromise Hunting (T1078)
+-- ---------------------------------------------------------------------
+-- Description: Correlates accounts targeted in recent password spraying with subsequent successful logins.
+
+index=student_portal sourcetype=auth_logs event="password_login"
+| eval is_fail=if(result=="failure", 1, 0), is_succ=if(result=="success", 1, 0)
+| stats max(eval(if(is_fail==1, _time, null()))) as last_fail_time,
+        max(eval(if(is_succ==1, _time, null()))) as last_succ_time,
+        values(eval(if(is_fail==1, source_ip, null()))) as fail_ips,
+        values(eval(if(is_succ==1, source_ip, null()))) as succ_ips,
+        values(eval(if(is_succ==1, device, null()))) as succ_device by user_id
+| where isnotnull(last_fail_time) AND isnotnull(last_succ_time) AND last_succ_time > last_fail_time
+| eval delta_minutes=round((last_succ_time - last_fail_time) / 60, 1)
+| where delta_minutes <= 240
+| table user_id, delta_minutes, fail_ips, succ_ips, succ_device
+
+
+-- ---------------------------------------------------------------------
+-- 4. ANSI SQL / BIGQUERY / POSTGRESQL: Authentication Baseline & Anomaly
+-- ---------------------------------------------------------------------
+
+-- Hourly failure rate by subnet:
+SELECT
+    DATE_TRUNC('hour', timestamp) AS window_hour,
+    source_ip,
+    COUNT(CASE WHEN result = 'failure' THEN 1 END) AS fail_count,
+    COUNT(DISTINCT user_id) AS distinct_users,
+    COUNT(CASE WHEN result = 'success' THEN 1 END) AS success_count
+FROM authentication_logs
+GROUP BY 1, 2
+HAVING COUNT(CASE WHEN result = 'failure' THEN 1 END) >= 3
+ORDER BY fail_count DESC;
